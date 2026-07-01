@@ -46,15 +46,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
 // ---- Login ----
 
-var ACCOUNTS = [
-  { username: 'mika',   password: '694227', canAdd: false },
-  { username: 'sbibla', password: '123456', canAdd: true  }
-];
+async function sha256(text) {
+  var buffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buffer)).map(function (b) {
+    return b.toString(16).padStart(2, '0');
+  }).join('');
+}
 
-function handleLogin() {
+async function handleLogin() {
   var username = document.getElementById('login-username').value.trim().toLowerCase();
   var password = document.getElementById('login-password').value.trim();
-  var errorEl = document.getElementById('login-error');
 
   if (!username || !password) {
     showLoginError('Please enter your username and PIN.');
@@ -66,8 +67,21 @@ function handleLogin() {
     return;
   }
 
-  var match = ACCOUNTS.find(function (a) {
-    return a.username === username && a.password === password;
+  var usernameHash = await sha256(username);
+  var passwordHash = await sha256(password);
+
+  var users;
+  try {
+    var res = await fetch('users.json');
+    var data = await res.json();
+    users = data.users;
+  } catch (e) {
+    showLoginError('Could not load user data. Please try again.');
+    return;
+  }
+
+  var match = users.find(function (u) {
+    return u.usernameHash === usernameHash && u.passwordHash === passwordHash;
   });
 
   if (!match) {
@@ -75,7 +89,7 @@ function handleLogin() {
     return;
   }
 
-  sessionStorage.setItem('loggedInUser', username);
+  sessionStorage.setItem('loggedInUser', usernameHash);
   sessionStorage.setItem('canAdd', match.canAdd ? 'true' : 'false');
   window.location.href = 'balance.html';
 }

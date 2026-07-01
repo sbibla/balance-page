@@ -1,0 +1,14 @@
+{
+  "users": [
+    {
+      "usernameHash": "1567e79a15758616ee6c7bccbbd6f2bafcf3de6c49e7dd31fe6cd8a63d944359",
+      "passwordHash": "b676ba5b01861ecd063e7fc69f102708009cc780d4bcb8dd58460e69738cf455",
+      "canAdd": false
+    },
+    {
+      "usernameHash": "0bbf0c3dff2524bc2a80c7fb2a21e31ebb5efe7c2a699ebd9164799fac3926d6",
+      "passwordHash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
+      "canAdd": true
+    }
+  ]
+}
