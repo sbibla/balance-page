@@ -1,48 +1,24 @@
 // =============================================
-// Demo Project JavaScript
-// Try asking Claude to modify this behaviour!
+// Bibla Apps — app.js
 // =============================================
 
-// This runs as soon as the page loads
-document.addEventListener('DOMContentLoaded', function () {
-  // Guard: if we're on the balance page, make sure the user is logged in
-  if (document.getElementById('balance-display')) {
-    if (!sessionStorage.getItem('loggedInUser')) {
-      window.location.href = 'index.html';
-      return;
-    }
-    if (sessionStorage.getItem('canAdd') !== 'true') {
-      var addBtn = document.querySelector('.add-btn');
-      if (addBtn) {
-        addBtn.disabled = true;
-        addBtn.title = 'You do not have permission to add funds';
-      }
-    }
-  }
+import { initializeApp }              from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getFirestore, doc, getDoc, setDoc }
+                                       from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
-  fetch('transactions.json')
-    .then(function (res) {
-      if (!res.ok) throw new Error('not found');
-      return res.json();
-    })
-    .then(function (parsed) {
-      if (!parsed.transactions || !Array.isArray(parsed.transactions)) throw new Error('invalid');
-      transactions = parsed.transactions;
-      nextId = transactions.reduce(function (max, t) { return Math.max(max, t.id + 1); }, 1);
-      saveData();
-      renderAll();
-    })
-    .catch(function () {
-      // No transactions.json found — fall back to localStorage or built-in defaults
-      var hadSavedData = loadData();
-      if (!hadSavedData) {
-        transactions = DEFAULT_TRANSACTIONS.slice();
-        nextId = 6;
-        saveData();
-      }
-      renderAll();
-    });
-});
+// ---- Firebase setup ----
+
+const firebaseConfig = {
+  apiKey:            "AIzaSyCep3erAzfctu24i8QDzC51yz5eZQ3XkvI",
+  authDomain:        "bibla-balance-app.firebaseapp.com",
+  projectId:         "bibla-balance-app",
+  storageBucket:     "bibla-balance-app.firebasestorage.app",
+  messagingSenderId: "833335006706",
+  appId:             "1:833335006706:web:41ca8423aafce8579f876b"
+};
+
+const firebaseApp = initializeApp(firebaseConfig);
+const db          = getFirestore(firebaseApp);
 
 // ---- Login ----
 
@@ -72,7 +48,7 @@ async function handleLogin() {
 
   var users;
   try {
-    var res = await fetch('users.json');
+    var res  = await fetch('users.json');
     var data = await res.json();
     users = data.users;
   } catch (e) {
@@ -94,60 +70,49 @@ async function handleLogin() {
   window.location.href = 'balance.html';
 }
 
-function logout() {
-  sessionStorage.clear();
-  window.location.href = 'index.html';
-}
-
 function showLoginError(msg) {
   var el = document.getElementById('login-error');
   el.textContent = msg;
   el.classList.add('visible');
 }
 
-// Allow pressing Enter to submit
-document.addEventListener('DOMContentLoaded', function () {
-  var fields = ['login-username', 'login-password'];
-  fields.forEach(function (id) {
-    var el = document.getElementById(id);
-    if (el) el.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') handleLogin();
-    });
-  });
-});
+function logout() {
+  sessionStorage.clear();
+  window.location.href = 'index.html';
+}
 
 // ---- Data model ----
-// Each transaction: { id, date, amount, comment, originalComment }
-// amount is positive for deposits, negative for withdrawals
 
 var DEFAULT_TRANSACTIONS = [
-  { id: 1, date: 'Jun 28, 2026', amount: -6.50,    comment: 'Coffee shop',              originalComment: 'Coffee shop' },
-  { id: 2, date: 'Jun 25, 2026', amount: 3200.00,  comment: 'Monthly salary',           originalComment: 'Monthly salary' },
-  { id: 3, date: 'Jun 22, 2026', amount: -84.20,   comment: 'Grocery store',            originalComment: 'Grocery store' },
-  { id: 4, date: 'Jun 18, 2026', amount: -112.00,  comment: 'Electricity bill',         originalComment: 'Electricity bill' },
-  { id: 5, date: 'Jun 15, 2026', amount: 750.00,   comment: 'Freelance payment received', originalComment: 'Freelance payment received' }
+  { id: 10, date: 'May 25, 2026', amount: -50,   comment: 'The Oaks - Apple Cash',      originalComment: 'The Oaks - Apple Cash' },
+  { id: 9,  date: 'May 8, 2026',  amount: -20,   comment: 'The Oaks - PJ',              originalComment: 'The Oaks - PJ' },
+  { id: 8,  date: 'May 4, 2026',  amount:  23,   comment: 'Allowance',                  originalComment: 'Allowance' },
+  { id: 7,  date: 'Apr 6, 2026',  amount:  23,   comment: 'Allowance',                  originalComment: 'Allowance' },
+  { id: 6,  date: 'Mar 17, 2026', amount: -18,   comment: 'Amazon - curly hair gel',    originalComment: 'Amazon - curly hair gel' },
+  { id: 5,  date: 'Jan 21, 2026', amount:  20,   comment: 'Cash',                       originalComment: 'Cash' },
+  { id: 4,  date: 'Jan 21, 2026', amount: -10,   comment: '',                           originalComment: '' },
+  { id: 3,  date: 'Jan 16, 2026', amount: -10,   comment: 'Starbucks',                  originalComment: 'Starbucks' },
+  { id: 2,  date: 'Jan 1, 2026',  amount:  25,   comment: 'Allowance',                  originalComment: 'Allowance' },
+  { id: 1,  date: 'Jan 1, 2026',  amount:  20,   comment: 'Facial',                     originalComment: 'Facial' },
+  { id: 0,  date: 'Jan 1, 2026',  amount: 155,   comment: 'Opening balance',            originalComment: 'Opening balance' }
 ];
 
 var transactions = [];
-var nextId = 1;
+var nextId       = 1;
 var currentAction = null;
 
-// ---- Persistence ----
+// ---- Firestore persistence ----
 
-function saveData() {
-  localStorage.setItem('saar_transactions', JSON.stringify(transactions));
+async function saveData() {
+  await setDoc(doc(db, 'appData', 'transactions'), { list: transactions });
 }
 
-function loadData() {
-  var saved = localStorage.getItem('saar_transactions');
-  if (saved) {
-    try {
-      transactions = JSON.parse(saved);
-      nextId = transactions.reduce(function (max, t) { return Math.max(max, t.id + 1); }, 1);
-      return true;
-    } catch (e) {
-      transactions = [];
-    }
+async function loadData() {
+  var snap = await getDoc(doc(db, 'appData', 'transactions'));
+  if (snap.exists() && snap.data().list && snap.data().list.length > 0) {
+    transactions = snap.data().list;
+    nextId = transactions.reduce(function (max, t) { return Math.max(max, t.id + 1); }, 1);
+    return true;
   }
   return false;
 }
@@ -155,19 +120,19 @@ function loadData() {
 function exportTransactions() {
   var data = JSON.stringify({ transactions: transactions }, null, 2);
   var blob = new Blob([data], { type: 'application/json' });
-  var url = URL.createObjectURL(blob);
-  var a = document.createElement('a');
+  var url  = URL.createObjectURL(blob);
+  var a    = document.createElement('a');
   a.href = url;
   a.download = 'transactions.json';
   a.click();
   URL.revokeObjectURL(url);
 }
 
-function importTransactions(event) {
+async function importTransactions(event) {
   var file = event.target.files[0];
   if (!file) return;
   var reader = new FileReader();
-  reader.onload = function (e) {
+  reader.onload = async function (e) {
     try {
       var parsed = JSON.parse(e.target.result);
       if (!parsed.transactions || !Array.isArray(parsed.transactions)) {
@@ -176,7 +141,7 @@ function importTransactions(event) {
       }
       transactions = parsed.transactions;
       nextId = transactions.reduce(function (max, t) { return Math.max(max, t.id + 1); }, 1);
-      saveData();
+      await saveData();
       renderAll();
       event.target.value = '';
     } catch (err) {
@@ -206,16 +171,16 @@ function renderAll(highlightId) {
   list.classList.toggle('scrollable', transactions.length > 10);
 
   transactions.forEach(function (t) {
-    var li = document.createElement('li');
-    li.className = 'transaction' + (t.id === highlightId ? ' new-transaction' : '');
+    var li        = document.createElement('li');
+    li.className  = 'transaction' + (t.id === highlightId ? ' new-transaction' : '');
     li.dataset.id = t.id;
 
-    var isAdd = t.amount > 0;
-    var wasEdited = t.comment !== t.originalComment;
+    var isAdd      = t.amount > 0;
+    var wasEdited  = t.comment !== t.originalComment;
     var editedBadge = wasEdited ? '<span class="edited-badge">edited</span>' : '';
 
     li.innerHTML =
-      '<span class="transaction-date">' + t.date + '</span>' +
+      '<span class="transaction-date">'   + t.date + '</span>' +
       '<span class="transaction-comment" onclick="editComment(this)">' +
         t.comment + '<span class="edit-icon">✏️</span>' + editedBadge +
       '</span>' +
@@ -223,7 +188,6 @@ function renderAll(highlightId) {
         (isAdd ? '+' : '-') + formatMoney(t.amount) +
       '</span>';
 
-    // Wire up the edited badge tooltip
     var badge = li.querySelector('.edited-badge');
     if (badge) {
       badge.onclick = function (e) {
@@ -246,7 +210,7 @@ function openForm(action) {
   currentAction = action;
   document.getElementById('form-title').textContent = action === 'add' ? 'Add Funds' : 'Withdraw Funds';
   document.getElementById('form-confirm-btn').className = 'form-confirm ' + (action === 'add' ? 'confirm-add' : 'confirm-withdraw');
-  document.getElementById('form-amount').value = '';
+  document.getElementById('form-amount').value  = '';
   document.getElementById('form-comment').value = '';
   document.getElementById('modal-overlay').classList.add('open');
   setTimeout(function () { document.getElementById('form-amount').focus(); }, 50);
@@ -258,12 +222,11 @@ function closeForm() {
 }
 
 function handleOverlayClick(event) {
-  // Close the modal if the user clicks the dark background (not the white box itself)
   if (event.target === document.getElementById('modal-overlay')) closeForm();
 }
 
-function confirmTransaction() {
-  var amount = parseFloat(document.getElementById('form-amount').value);
+async function confirmTransaction() {
+  var amount  = parseFloat(document.getElementById('form-amount').value);
   var comment = document.getElementById('form-comment').value.trim();
 
   if (!amount || amount <= 0) { alert('Please enter a valid amount.'); return; }
@@ -273,13 +236,13 @@ function confirmTransaction() {
     return;
   }
 
-  var today = new Date();
-  var dateStr = today.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  var finalAmount = currentAction === 'add' ? amount : -amount;
+  var today    = new Date();
+  var dateStr  = today.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  var finalAmt = currentAction === 'add' ? amount : -amount;
+  var t        = { id: nextId++, date: dateStr, amount: finalAmt, comment: comment, originalComment: comment };
 
-  var t = { id: nextId++, date: dateStr, amount: finalAmount, comment: comment, originalComment: comment };
   transactions.unshift(t);
-  saveData();
+  await saveData();
   renderAll(t.id);
   closeForm();
 }
@@ -289,30 +252,29 @@ function confirmTransaction() {
 function editComment(span) {
   if (span.querySelector('input')) return;
 
-  var li = span.closest('li');
-  var id = parseInt(li.dataset.id);
-  var t = transactions.find(function (x) { return x.id === id; });
+  var li   = span.closest('li');
+  var id   = parseInt(li.dataset.id);
+  var t    = transactions.find(function (x) { return x.id === id; });
   if (!t) return;
 
   var currentText = t.comment;
+  span.innerHTML  = '';
+  span.onclick    = null;
 
-  span.innerHTML = '';
-  var input = document.createElement('input');
-  input.type = 'text';
-  input.value = currentText;
+  var input       = document.createElement('input');
+  input.type      = 'text';
+  input.value     = currentText;
   input.className = 'comment-input';
   span.appendChild(input);
   input.focus();
   input.select();
-  span.onclick = null;
 
-  function saveComment() {
+  async function saveComment() {
     var newText = input.value.trim() || currentText;
-    t.comment = newText;
-    saveData();
+    t.comment   = newText;
+    await saveData();
     renderAll();
 
-    // Re-wire badge on the freshly rendered row
     var newLi = document.querySelector('li[data-id="' + id + '"]');
     if (newLi) {
       var badge = newLi.querySelector('.edited-badge');
@@ -336,7 +298,7 @@ function showOriginal(badge, originalText) {
   var existing = badge.querySelector('.original-tooltip');
   if (existing) { existing.remove(); return; }
 
-  var tip = document.createElement('span');
+  var tip       = document.createElement('span');
   tip.className = 'original-tooltip';
   tip.textContent = 'Original: ' + originalText;
   badge.appendChild(tip);
@@ -349,45 +311,50 @@ function showOriginal(badge, originalText) {
   }, 0);
 }
 
-// ---- Click counter button ----
+// ---- Boot ----
 
-// Tracks how many times the button has been clicked
-var clickCount = 0;
+document.addEventListener('DOMContentLoaded', async function () {
 
-// Messages to cycle through on each click
-var messages = [
-  "You clicked it! Nice work.",
-  "Twice! You're getting the hang of this.",
-  "Three times — you're on a roll!",
-  "Four clicks. Are you testing something?",
-  "Five! Claude Code made this button. Pretty cool, right?",
-  "Six clicks. At this point, you're just having fun.",
-  "Seven. Lucky number!",
-  "Eight clicks. Okay, you win — here's a virtual high five: ✋",
-  "Nine! Almost at ten.",
-  "TEN CLICKS! You've unlocked... nothing. But good job anyway."
-];
+  // Balance page guard
+  if (document.getElementById('balance-display')) {
+    if (!sessionStorage.getItem('loggedInUser')) {
+      window.location.href = 'index.html';
+      return;
+    }
+    if (sessionStorage.getItem('canAdd') !== 'true') {
+      var addBtn = document.querySelector('.add-btn');
+      if (addBtn) {
+        addBtn.disabled = true;
+        addBtn.title    = 'You do not have permission to add funds';
+      }
+    }
 
-// This function runs every time the button is clicked
-function handleButtonClick() {
-  clickCount = clickCount + 1;
-
-  // Pick a message — if we've run out, just keep showing the last one
-  var messageIndex = Math.min(clickCount - 1, messages.length - 1);
-  var messageText = messages[messageIndex];
-
-  // Update the text on the page
-  document.getElementById('message-display').textContent = messageText;
-
-  // Show the click count below the button
-  if (clickCount === 1) {
-    document.getElementById('click-counter').textContent = '1 click so far';
-  } else {
-    document.getElementById('click-counter').textContent = clickCount + ' clicks so far';
+    var hadData = await loadData();
+    if (!hadData) {
+      transactions = DEFAULT_TRANSACTIONS.slice();
+      nextId       = 11;
+      await saveData();
+    }
+    renderAll();
   }
 
-  // Change button colour slightly after 5 clicks as a fun reward
-  if (clickCount >= 5) {
-    document.getElementById('main-button').style.backgroundColor = '#6b46c1';
-  }
-}
+  // Login page — wire up Enter key
+  var fields = ['login-username', 'login-password'];
+  fields.forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el) el.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') handleLogin();
+    });
+  });
+});
+
+// Expose functions called from HTML onclick attributes
+window.handleLogin        = handleLogin;
+window.logout             = logout;
+window.openForm           = openForm;
+window.closeForm          = closeForm;
+window.handleOverlayClick = handleOverlayClick;
+window.confirmTransaction = confirmTransaction;
+window.exportTransactions = exportTransactions;
+window.importTransactions = importTransactions;
+window.editComment        = editComment;
