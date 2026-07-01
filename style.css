@@ -207,6 +207,13 @@ main {
 
 .add-btn { background-color: #38a169; color: white; }
 .add-btn:hover { background-color: #2f855a; }
+.add-btn:disabled {
+  background-color: #cbd5e0;
+  color: #a0aec0;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+.add-btn:disabled:hover { background-color: #cbd5e0; }
 
 .withdraw-btn { background-color: #e53e3e; color: white; }
 .withdraw-btn:hover { background-color: #c53030; }

@@ -11,6 +11,13 @@ document.addEventListener('DOMContentLoaded', function () {
       window.location.href = 'index.html';
       return;
     }
+    if (sessionStorage.getItem('canAdd') !== 'true') {
+      var addBtn = document.querySelector('.add-btn');
+      if (addBtn) {
+        addBtn.disabled = true;
+        addBtn.title = 'You do not have permission to add funds';
+      }
+    }
   }
 
   fetch('transactions.json')
@@ -40,7 +47,8 @@ document.addEventListener('DOMContentLoaded', function () {
 // ---- Login ----
 
 var ACCOUNTS = [
-  { username: 'mika', password: '694227' }
+  { username: 'mika',   password: '694227', canAdd: false },
+  { username: 'sbibla', password: '123456', canAdd: true  }
 ];
 
 function handleLogin() {
@@ -68,6 +76,7 @@ function handleLogin() {
   }
 
   sessionStorage.setItem('loggedInUser', username);
+  sessionStorage.setItem('canAdd', match.canAdd ? 'true' : 'false');
   window.location.href = 'balance.html';
 }
 
