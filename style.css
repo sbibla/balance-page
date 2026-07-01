@@ -423,6 +423,11 @@ main {
 }
 
 /* --- Footer --- */
+.version {
+  opacity: 0.55;
+  font-size: 0.8em;
+}
+
 footer {
   background-color: #2d3748;
   color: #a0aec0;
