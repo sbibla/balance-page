@@ -1,0 +1,479 @@
+/* =============================================
+   Demo Project Styles
+   Try asking Claude to change these values!
+   ============================================= */
+
+/* --- Page-wide settings --- */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Segoe UI', Arial, sans-serif;
+  background-color: #e8f5e9;
+  color: #2d3748;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* --- Header --- */
+header {
+  background-color: #4a6fa5;
+  color: white;
+  text-align: center;
+  padding: 2.5rem 1rem;
+}
+
+header h1 {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.subtitle {
+  font-size: 1.1rem;
+  opacity: 0.85;
+  letter-spacing: 0.05em;
+}
+
+/* --- Main content area --- */
+main {
+  flex: 1;
+  max-width: 800px;
+  width: 100%;
+  margin: 2rem auto;
+  padding: 0 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* --- Cards --- */
+.card {
+  background-color: white;
+  border-radius: 60px;
+  padding: 1.75rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.15);
+}
+
+.card h2 {
+  font-size: 1.4rem;
+  color: #4a6fa5;
+  margin-bottom: 1rem;
+}
+
+.card p {
+  line-height: 1.7;
+  color: #4a5568;
+}
+
+.card ul {
+  padding-left: 1.5rem;
+  line-height: 2;
+  color: #4a5568;
+}
+
+/* --- Account card --- */
+.balance-amount {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #2d3748;
+  margin-bottom: 1.5rem;
+}
+
+.transactions-heading {
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #a0aec0;
+  margin-bottom: 0.75rem;
+}
+
+.transaction-list {
+  list-style: none;
+  padding: 0;
+}
+
+.transaction-list.scrollable {
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 0.4rem;
+}
+
+.transaction-list.scrollable::-webkit-scrollbar {
+  width: 4px;
+}
+
+.transaction-list.scrollable::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.transaction-list.scrollable::-webkit-scrollbar-thumb {
+  background-color: #cbd5e0;
+  border-radius: 4px;
+}
+
+.transaction {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #f0f4f8;
+}
+
+.transaction:last-child {
+  border-bottom: none;
+}
+
+.transaction-date {
+  font-size: 0.85rem;
+  color: #a0aec0;
+  width: 7rem;
+  flex-shrink: 0;
+}
+
+.transaction-comment {
+  flex: 1;
+  color: #4a5568;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  -webkit-mask-image: linear-gradient(to right, black 80%, transparent 100%);
+  mask-image: linear-gradient(to right, black 80%, transparent 100%);
+}
+
+.transaction-amount {
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.transaction-amount.positive { color: #38a169; }
+.transaction-amount.negative { color: #e53e3e; }
+
+/* --- File controls --- */
+.file-controls {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  justify-content: flex-end;
+}
+
+.file-btn {
+  padding: 0.25rem 0.75rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  background-color: #edf2f7;
+  color: #718096;
+  border: 1px solid #cbd5e0;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  text-align: center;
+}
+
+.file-btn:hover { background-color: #e2e8f0; }
+
+.file-load-label { display: flex; align-items: center; justify-content: center; }
+.file-load-label input[type="file"] { display: none; }
+
+/* --- Balance buttons --- */
+.balance-buttons {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.balance-btn {
+  flex: 1;
+  padding: 0.6rem 1.25rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.balance-btn:active { transform: scale(0.97); }
+
+.add-btn { background-color: #38a169; color: white; }
+.add-btn:hover { background-color: #2f855a; }
+
+.withdraw-btn { background-color: #e53e3e; color: white; }
+.withdraw-btn:hover { background-color: #c53030; }
+
+/* --- Modal overlay --- */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.45);
+  z-index: 100;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-overlay.open {
+  display: flex;
+}
+
+.modal {
+  background: white;
+  border-radius: 24px;
+  padding: 2rem;
+  width: 90%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  animation: modalIn 0.2s ease;
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.95) translateY(10px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.modal-title {
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: #2d3748;
+  margin: 0;
+}
+
+.modal input {
+  padding: 0.65rem 1rem;
+  border: 1px solid #cbd5e0;
+  border-radius: 50px;
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.modal input:focus { border-color: #4a6fa5; }
+
+.form-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.form-confirm, .form-cancel {
+  flex: 1;
+  padding: 0.6rem;
+  border: none;
+  border-radius: 50px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.form-confirm { background-color: #38a169; color: white; }
+.form-confirm:hover { background-color: #2f855a; }
+.confirm-withdraw { background-color: #e53e3e; }
+.confirm-withdraw:hover { background-color: #c53030; }
+
+.form-cancel { background-color: #e2e8f0; color: #4a5568; }
+.form-cancel:hover { background-color: #cbd5e0; }
+
+/* --- Editable comment --- */
+.transaction-comment {
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.2s ease, color 0.2s ease;
+  border-radius: 20px;
+  padding: 0.2rem 0.4rem;
+}
+
+.transaction-comment:hover {
+  transform: translateY(-3px);
+  color: #4a6fa5;
+}
+
+.edit-icon {
+  font-size: 0.75rem;
+  margin-left: 0.35rem;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.transaction-comment:hover .edit-icon {
+  opacity: 1;
+}
+
+.edited-badge {
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #805ad5;
+  background-color: #e9d8fd;
+  border-radius: 20px;
+  padding: 0.1rem 0.45rem;
+  margin-left: 0.4rem;
+  cursor: pointer;
+  position: relative;
+  vertical-align: middle;
+  transition: background-color 0.2s ease;
+}
+
+.edited-badge:hover {
+  background-color: #d6bcfa;
+}
+
+.original-tooltip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #2d3748;
+  color: white;
+  font-size: 0.8rem;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  white-space: nowrap;
+  padding: 0.4rem 0.75rem;
+  border-radius: 8px;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.original-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: #2d3748;
+}
+
+.comment-input {
+  flex: 1;
+  padding: 0.25rem 0.75rem;
+  border: 1.5px solid #4a6fa5;
+  border-radius: 50px;
+  font-size: 0.95rem;
+  outline: none;
+  color: #2d3748;
+}
+
+/* --- New transaction highlight --- */
+@keyframes highlightRow {
+  from { background-color: #c6f6d5; }
+  to   { background-color: transparent; }
+}
+
+.new-transaction { animation: highlightRow 1s ease forwards; }
+
+/* --- Interactive card --- */
+.interactive-card {
+  text-align: center;
+}
+
+#message-display {
+  font-size: 1.1rem;
+  margin-bottom: 1.25rem;
+  min-height: 1.7rem;
+}
+
+/* --- Button --- */
+#main-button {
+  background-color: #f97316;
+  color: white;
+  border: none;
+  padding: 0.75rem 2rem;
+  font-size: 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+#main-button:hover {
+  background-color: #ea6c05;
+}
+
+#main-button:active {
+  transform: scale(0.97);
+}
+
+.counter-text {
+  margin-top: 1rem;
+  font-size: 0.95rem;
+  color: #718096;
+  min-height: 1.5rem;
+}
+
+/* --- Footer --- */
+footer {
+  background-color: #2d3748;
+  color: #a0aec0;
+  text-align: center;
+  padding: 1.25rem;
+  font-size: 0.9rem;
+}
+
+/* --- Responsive (looks good on phones too) --- */
+@media (max-width: 600px) {
+  header h1 {
+    font-size: 1.75rem;
+  }
+
+  /* Less aggressive rounding on small screens so cards don't feel cramped */
+  .card {
+    padding: 1.25rem;
+    border-radius: 28px;
+  }
+
+  /* Stack balance buttons full width */
+  .balance-buttons {
+    flex-direction: column;
+  }
+
+  /* Shrink the date column so the comment has more room */
+  .transaction-date {
+    width: 5rem;
+    font-size: 0.75rem;
+  }
+
+  /* Smaller amount text */
+  .transaction-amount {
+    font-size: 0.85rem;
+  }
+
+  /* Smaller balance figure */
+  .balance-amount {
+    font-size: 1.9rem;
+  }
+
+  /* Tap targets: make the form inputs easier to hit with a thumb */
+  .transaction-form input,
+  .form-confirm,
+  .form-cancel {
+    font-size: 1rem;
+    padding: 0.75rem 1rem;
+  }
+
+  /* Disable card hover-lift on touch devices — it has no effect and can look odd */
+  .card:hover {
+    transform: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  /* Disable comment lift on touch */
+  .transaction-comment:hover {
+    transform: none;
+    color: #4a5568;
+  }
+}

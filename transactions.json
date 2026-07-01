@@ -1,0 +1,15 @@
+{
+  "transactions": [
+    { "id": 10, "date": "May 25, 2026", "amount": -50,  "comment": "The Oaks - Apple Cash",    "originalComment": "The Oaks - Apple Cash" },
+    { "id": 9,  "date": "May 8, 2026",  "amount": -20,  "comment": "The Oaks - PJ",            "originalComment": "The Oaks - PJ" },
+    { "id": 8,  "date": "May 4, 2026",  "amount": 23,   "comment": "Allowance",                "originalComment": "Allowance" },
+    { "id": 7,  "date": "Apr 6, 2026",  "amount": 23,   "comment": "Allowance",                "originalComment": "Allowance" },
+    { "id": 6,  "date": "Mar 17, 2026", "amount": -18,  "comment": "Amazon - curly hair gel",  "originalComment": "Amazon - curly hair gel" },
+    { "id": 5,  "date": "Jan 21, 2026", "amount": 20,   "comment": "Cash",                     "originalComment": "Cash" },
+    { "id": 4,  "date": "Jan 21, 2026", "amount": -10,  "comment": "",                         "originalComment": "" },
+    { "id": 3,  "date": "Jan 16, 2026", "amount": -10,  "comment": "Starbucks",                "originalComment": "Starbucks" },
+    { "id": 2,  "date": "Jan 1, 2026",  "amount": 25,   "comment": "Allowance",                "originalComment": "Allowance" },
+    { "id": 1,  "date": "Jan 1, 2026",  "amount": 20,   "comment": "Facial",                   "originalComment": "Facial" },
+    { "id": 0,  "date": "Jan 1, 2026",  "amount": 155,  "comment": "Opening balance",          "originalComment": "Opening balance" }
+  ]
+}

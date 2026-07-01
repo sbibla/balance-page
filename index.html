@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My First Claude Code Project</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <header>
+    <h1>Welcome to Saar Bibla's Page</h1>
+    <p class="subtitle">Built with Claude Code</p>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>About This Page</h2>
+      <p>
+        This is a practice project for learning Claude Code.
+        You can ask Claude to change the colors, add new sections,
+        update the text, or add new features — all by describing
+        what you want in plain English.
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>Try These Practice Tasks</h2>
+      <ul>
+        <li>Change the background color</li>
+        <li>Add your name to the header</li>
+        <li>Make the button do something new</li>
+        <li>Add a new section below this one</li>
+        <li>Change the font style</li>
+      </ul>
+    </section>
+
+    <section class="card account-card">
+      <h2>My Balance</h2>
+      <p class="balance-amount" id="balance-display">$4,218.53</p>
+
+      <div class="balance-buttons">
+        <button class="balance-btn add-btn" onclick="openForm('add')">+ Add</button>
+        <button class="balance-btn withdraw-btn" onclick="openForm('withdraw')">− Withdraw</button>
+      </div>
+
+      <h3 class="transactions-heading">Recent Transactions</h3>
+      <ul class="transaction-list" id="transaction-list"></ul>
+
+      <div class="file-controls">
+        <button class="file-btn" onclick="exportTransactions()">⬇ Save to file</button>
+        <label class="file-btn file-load-label">
+          ⬆ Load from file
+          <input type="file" id="file-input" accept=".json" onchange="importTransactions(event)" />
+        </label>
+      </div>
+    </section>
+
+    <section class="card interactive-card">
+      <h2>Interactive Area</h2>
+      <p id="message-display">Click the button below to see something happen!</p>
+      <button id="main-button" onclick="handleButtonClick()">Click Me</button>
+      <p id="click-counter" class="counter-text"></p>
+    </section>
+  </main>
+
+  <footer>
+    <p>Made by Saar Bibla</p>
+  </footer>
+
+  <div class="modal-overlay" id="modal-overlay" onclick="handleOverlayClick(event)">
+    <div class="modal">
+      <p class="modal-title" id="form-title">Add Funds</p>
+      <input type="number" id="form-amount" placeholder="Amount in USD" min="0.01" step="0.01" />
+      <input type="text" id="form-comment" placeholder="What's this for?" />
+      <div class="form-actions">
+        <button class="form-confirm" id="form-confirm-btn" onclick="confirmTransaction()">Confirm</button>
+        <button class="form-cancel" onclick="closeForm()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
