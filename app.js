@@ -5,6 +5,14 @@
 
 // This runs as soon as the page loads
 document.addEventListener('DOMContentLoaded', function () {
+  // Guard: if we're on the balance page, make sure the user is logged in
+  if (document.getElementById('balance-display')) {
+    if (!sessionStorage.getItem('loggedInUser')) {
+      window.location.href = 'index.html';
+      return;
+    }
+  }
+
   fetch('transactions.json')
     .then(function (res) {
       if (!res.ok) throw new Error('not found');
