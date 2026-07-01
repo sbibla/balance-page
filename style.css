@@ -431,6 +431,26 @@ footer {
   font-size: 0.9rem;
 }
 
+/* --- Logout button --- */
+.logout-btn {
+  position: absolute;
+  top: 1rem;
+  right: 1.25rem;
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  border: 1.5px solid rgba(255, 255, 255, 0.4);
+  border-radius: 50px;
+  padding: 0.3rem 0.9rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.logout-btn:hover { background: rgba(255, 255, 255, 0.28); }
+
+header { position: relative; }
+
 /* --- Login page --- */
 .login-main {
   display: flex;

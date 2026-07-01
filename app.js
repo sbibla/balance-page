@@ -94,6 +94,11 @@ async function handleLogin() {
   window.location.href = 'balance.html';
 }
 
+function logout() {
+  sessionStorage.clear();
+  window.location.href = 'index.html';
+}
+
 function showLoginError(msg) {
   var el = document.getElementById('login-error');
   el.textContent = msg;
