@@ -29,6 +29,57 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 
+// ---- Login ----
+
+var ACCOUNTS = [
+  { username: 'mika', password: '694227' }
+];
+
+function handleLogin() {
+  var username = document.getElementById('login-username').value.trim().toLowerCase();
+  var password = document.getElementById('login-password').value.trim();
+  var errorEl = document.getElementById('login-error');
+
+  if (!username || !password) {
+    showLoginError('Please enter your username and PIN.');
+    return;
+  }
+
+  if (!/^\d{6}$/.test(password)) {
+    showLoginError('Password must be exactly 6 digits.');
+    return;
+  }
+
+  var match = ACCOUNTS.find(function (a) {
+    return a.username === username && a.password === password;
+  });
+
+  if (!match) {
+    showLoginError('Incorrect username or PIN. Please try again.');
+    return;
+  }
+
+  sessionStorage.setItem('loggedInUser', username);
+  window.location.href = 'balance.html';
+}
+
+function showLoginError(msg) {
+  var el = document.getElementById('login-error');
+  el.textContent = msg;
+  el.classList.add('visible');
+}
+
+// Allow pressing Enter to submit
+document.addEventListener('DOMContentLoaded', function () {
+  var fields = ['login-username', 'login-password'];
+  fields.forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el) el.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') handleLogin();
+    });
+  });
+});
+
 // ---- Data model ----
 // Each transaction: { id, date, amount, comment, originalComment }
 // amount is positive for deposits, negative for withdrawals
