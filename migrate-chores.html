@@ -48,7 +48,7 @@
 
       var data = snap.data();
       var mikaHash = await sha256('mika');
-      status.textContent = '⏳ Writing to Mika's document (' + mikaHash.slice(0, 10) + '…)';
+      status.textContent = '⏳ Writing to Mika document (' + mikaHash.slice(0, 10) + '…)';
 
       // Strip out categories (now shared) — keep list and streak only
       var mikaData = { list: data.list || [] };
