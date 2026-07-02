@@ -515,11 +515,15 @@ header { position: relative; }
 }
 
 .login-error {
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   color: #e53e3e;
   margin: 0;
   display: none;
-  padding-left: 0.25rem;
+  padding: 0.6rem 0.75rem;
+  background-color: #fff5f5;
+  border: 1px solid #fed7d7;
+  border-radius: 12px;
+  line-height: 1.5;
 }
 
 .login-error.visible { display: block; }

@@ -33,13 +33,23 @@ async function handleLogin() {
   var username = document.getElementById('login-username').value.trim().toLowerCase();
   var password = document.getElementById('login-password').value.trim();
 
-  if (!username || !password) {
-    showLoginError('Please enter your username and PIN.');
+  if (!username && !password) {
+    showLoginError('Please enter your username and PIN to sign in.');
+    return;
+  }
+
+  if (!username) {
+    showLoginError('Username is required. Please enter your username.');
+    return;
+  }
+
+  if (!password) {
+    showLoginError('PIN is required. Please enter your 6-digit PIN.');
     return;
   }
 
   if (!/^\d{6}$/.test(password)) {
-    showLoginError('Password must be exactly 6 digits.');
+    showLoginError('Your PIN must be exactly 6 numbers (e.g. 123456). Letters and symbols are not allowed.');
     return;
   }
 
@@ -53,12 +63,12 @@ async function handleLogin() {
       match = userSnap.data();
     }
   } catch (e) {
-    showLoginError('Could not reach the server. Please try again.');
+    showLoginError('Could not connect to the server. Please check your internet connection and try again.');
     return;
   }
 
   if (!match) {
-    showLoginError('Incorrect username or PIN. Please try again.');
+    showLoginError('Incorrect username or PIN. Please double-check your details and try again.');
     return;
   }
 
