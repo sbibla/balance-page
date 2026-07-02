@@ -581,6 +581,14 @@ header { position: relative; }
     padding: 0.75rem 1rem;
   }
 
+  /* Smaller sign-out button so it doesn't overlap the title */
+  .logout-btn {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.6rem;
+    top: 0.75rem;
+    right: 0.75rem;
+  }
+
   /* Disable card hover-lift on touch devices — it has no effect and can look odd */
   .card:hover {
     transform: none;
