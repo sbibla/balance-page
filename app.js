@@ -271,9 +271,21 @@ function showOriginal(badge, originalText) {
   }, 0);
 }
 
+// ---- Version ----
+
+async function loadVersion() {
+  try {
+    var res = await fetch('version.txt');
+    var version = (await res.text()).trim();
+    var el = document.getElementById('app-version');
+    if (el) el.textContent = version;
+  } catch (e) {}
+}
+
 // ---- Boot ----
 
 document.addEventListener('DOMContentLoaded', async function () {
+  loadVersion();
 
   // Balance page guard
   if (document.getElementById('balance-display')) {
