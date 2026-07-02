@@ -399,15 +399,16 @@ function renderChores() {
 
       var metaEl = document.createElement('div');
       metaEl.className = 'chore-meta';
+      var hasRecurring = Array.isArray(chore.recurringDays) && chore.recurringDays.length > 0;
       if (isDone) {
         var metaParts = [];
         if (chore.doneBy) metaParts.push('Done by ' + chore.doneBy + ' · ' + formatDate(chore.doneAt));
-        if (chore.recurringDays && chore.nextOccurrence) {
+        if (hasRecurring && chore.nextOccurrence) {
           metaParts.push('Next: ' + formatDate(chore.nextOccurrence));
         }
         metaEl.textContent = metaParts.join(' · ');
-      } else if (chore.recurringDays) {
-        metaEl.textContent = 'Repeats every ' + chore.recurringDays + ' day' + (chore.recurringDays > 1 ? 's' : '');
+      } else if (hasRecurring) {
+        metaEl.textContent = 'Repeats ' + chore.recurringDays.sort(function(a,b){return a-b;}).map(function(d){ return DAY_NAMES[d]; }).join(', ');
       }
 
       body.appendChild(nameEl);
@@ -468,8 +469,8 @@ async function toggleChore(id) {
   chore.status = 'done';
   chore.doneBy = alias;
   chore.doneAt = today;
-  if (chore.recurringDays) {
-    chore.nextOccurrence = addDays(today, chore.recurringDays);
+  if (Array.isArray(chore.recurringDays) && chore.recurringDays.length > 0) {
+    chore.nextOccurrence = nextOccurrenceFromDays(chore.recurringDays);
   }
   if (!chore.history) chore.history = [];
   chore.history.unshift({ doneBy: alias, doneAt: today });
@@ -500,7 +501,7 @@ function openChoreForm(id) {
   var nameEl = document.getElementById('chore-name');
   var catEl = document.getElementById('chore-category');
   var recurCheck = document.getElementById('chore-recurring-check');
-  var recurDays = document.getElementById('chore-recurring-days');
+  var picker = document.getElementById('day-picker');
 
   catEl.innerHTML = '';
   choresData.categories.forEach(function (cat) {
@@ -510,21 +511,31 @@ function openChoreForm(id) {
     catEl.appendChild(opt);
   });
 
+  // Wire up day buttons
+  picker.querySelectorAll('.day-btn').forEach(function (btn) {
+    btn.classList.remove('selected');
+    btn.onclick = function () { btn.classList.toggle('selected'); };
+  });
+
   if (id) {
     var chore = choresData.list.find(function (c) { return c.id === id; });
     titleEl.textContent = 'Edit Chore';
     nameEl.value = chore.name;
     catEl.value = chore.category;
-    recurCheck.checked = !!chore.recurringDays;
-    recurDays.disabled = !chore.recurringDays;
-    recurDays.value = chore.recurringDays || '';
+    var hasRecurring = Array.isArray(chore.recurringDays) && chore.recurringDays.length > 0;
+    recurCheck.checked = hasRecurring;
+    picker.style.display = hasRecurring ? 'flex' : 'none';
+    if (hasRecurring) {
+      picker.querySelectorAll('.day-btn').forEach(function (btn) {
+        if (chore.recurringDays.includes(parseInt(btn.dataset.day))) btn.classList.add('selected');
+      });
+    }
   } else {
     titleEl.textContent = 'Add Chore';
     nameEl.value = '';
     catEl.selectedIndex = 0;
     recurCheck.checked = false;
-    recurDays.disabled = true;
-    recurDays.value = '';
+    picker.style.display = 'none';
   }
 
   modal.classList.add('open');
@@ -540,27 +551,52 @@ function handleChoreOverlayClick(event) {
   if (event.target === document.getElementById('chore-modal')) closeChoreForm();
 }
 
+var DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
 function toggleRecurring() {
   var check = document.getElementById('chore-recurring-check');
-  var days = document.getElementById('chore-recurring-days');
-  days.disabled = !check.checked;
-  if (check.checked) days.focus();
+  var picker = document.getElementById('day-picker');
+  if (picker) picker.style.display = check.checked ? 'flex' : 'none';
+  if (!check.checked) {
+    picker.querySelectorAll('.day-btn').forEach(function (btn) {
+      btn.classList.remove('selected');
+    });
+  }
+}
+
+function getSelectedDays() {
+  var selected = [];
+  document.querySelectorAll('.day-btn.selected').forEach(function (btn) {
+    selected.push(parseInt(btn.dataset.day));
+  });
+  return selected;
+}
+
+function nextOccurrenceFromDays(days) {
+  var today = new Date();
+  var todayDay = today.getDay();
+  var sorted = days.slice().sort(function (a, b) { return a - b; });
+  var next = sorted.find(function (d) { return d > todayDay; });
+  var daysToAdd = next !== undefined ? next - todayDay : 7 - todayDay + sorted[0];
+  var d = new Date();
+  d.setDate(d.getDate() + daysToAdd);
+  return d.toISOString().split('T')[0];
 }
 
 async function confirmChore() {
   var name = document.getElementById('chore-name').value.trim();
   var category = document.getElementById('chore-category').value;
   var isRecurring = document.getElementById('chore-recurring-check').checked;
-  var days = parseInt(document.getElementById('chore-recurring-days').value);
+  var selectedDays = isRecurring ? getSelectedDays() : null;
 
   if (!name) { alert('Please enter a chore name.'); return; }
-  if (isRecurring && (!days || days < 1)) { alert('Please enter a valid number of days.'); return; }
+  if (isRecurring && selectedDays.length === 0) { alert('Please select at least one day it repeats on.'); return; }
 
   if (editingChoreId) {
     var chore = choresData.list.find(function (c) { return c.id === editingChoreId; });
     chore.name = name;
     chore.category = category;
-    chore.recurringDays = isRecurring ? days : null;
+    chore.recurringDays = selectedDays;
   } else {
     var maxId = choresData.list.reduce(function (m, c) { return Math.max(m, c.id); }, 0);
     choresData.list.push({
@@ -568,7 +604,7 @@ async function confirmChore() {
       name: name,
       category: category,
       status: 'pending',
-      recurringDays: isRecurring ? days : null,
+      recurringDays: selectedDays,
       doneBy: null,
       doneAt: null,
       nextOccurrence: null,

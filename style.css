@@ -842,18 +842,34 @@ header { position: relative; }
   padding: 0 0.25rem;
 }
 
-.inline-number {
-  width: 56px;
-  padding: 0.35rem 0.6rem;
-  border: 1px solid #cbd5e0;
-  border-radius: 50px;
-  font-size: 0.9rem;
-  text-align: center;
-  outline: none;
+.day-picker {
+  display: none;
+  gap: 0.3rem;
+  flex-wrap: wrap;
 }
 
-.inline-number:disabled { background: #f7fafc; color: #a0aec0; }
-.inline-number:focus { border-color: #4a6fa5; }
+.day-btn {
+  flex: 1;
+  min-width: 36px;
+  padding: 0.35rem 0.1rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border: 1.5px solid #cbd5e0;
+  border-radius: 50px;
+  background: white;
+  color: #718096;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  text-align: center;
+}
+
+.day-btn:hover { border-color: #4a6fa5; color: #4a6fa5; }
+
+.day-btn.selected {
+  background: #4a6fa5;
+  color: white;
+  border-color: #4a6fa5;
+}
 
 .chore-history-list {
   list-style: none;

@@ -40,10 +40,17 @@
       <select id="chore-category" class="modal-select"></select>
       <label class="modal-checkbox-label">
         <input type="checkbox" id="chore-recurring-check" onchange="toggleRecurring()" />
-        Repeats every
-        <input type="number" id="chore-recurring-days" min="1" max="365" placeholder="7" class="inline-number" disabled />
-        days
+        Repeats on specific days
       </label>
+      <div class="day-picker" id="day-picker">
+        <button type="button" class="day-btn" data-day="0">Sun</button>
+        <button type="button" class="day-btn" data-day="1">Mon</button>
+        <button type="button" class="day-btn" data-day="2">Tue</button>
+        <button type="button" class="day-btn" data-day="3">Wed</button>
+        <button type="button" class="day-btn" data-day="4">Thu</button>
+        <button type="button" class="day-btn" data-day="5">Fri</button>
+        <button type="button" class="day-btn" data-day="6">Sat</button>
+      </div>
       <div class="form-actions">
         <button class="form-confirm" id="chore-confirm-btn" onclick="confirmChore()">Save</button>
         <button class="form-cancel" onclick="closeChoreForm()">Cancel</button>
