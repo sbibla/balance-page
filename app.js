@@ -322,6 +322,12 @@ async function loadVersion() {
 // ---- Boot ----
 
 document.addEventListener('DOMContentLoaded', async function () {
+  var allowedHosts = ['biblix.io', 'www.biblix.io'];
+  if (!allowedHosts.includes(window.location.hostname)) {
+    window.location.replace('https://biblix.io');
+    return;
+  }
+
   loadVersion();
 
   // Home page guard + background prefetch
