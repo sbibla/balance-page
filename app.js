@@ -3,7 +3,7 @@
 // =============================================
 
 import { initializeApp }              from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, getDocs, query }
+import { getFirestore, doc, setDoc, onSnapshot }
                                        from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
 // ---- Firebase setup ----
@@ -78,49 +78,7 @@ function logout() {
   window.location.href = 'index.html';
 }
 
-// ---- User seeding (runs once if users collection is empty) ----
-
-async function seedUsersIfNeeded() {
-  var snap = await getDocs(query(collection(db, 'users')));
-  if (!snap.empty) return;
-
-  // Hashes of: mika/694227 and sbibla/123456
-  var seed = [
-    {
-      usernameHash: '1567e79a15758616ee6c7bccbbd6f2bafcf3de6c49e7dd31fe6cd8a63d944359',
-      passwordHash: 'b676ba5b01861ecd063e7fc69f102708009cc780d4bcb8dd58460e69738cf455',
-      canAdd: false
-    },
-    {
-      usernameHash: '0bbf0c3dff2524bc2a80c7fb2a21e31ebb5efe7c2a699ebd9164799fac3926d6',
-      passwordHash: '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92',
-      canAdd: true
-    }
-  ];
-
-  for (var u of seed) {
-    await setDoc(doc(db, 'users', u.usernameHash), {
-      passwordHash: u.passwordHash,
-      canAdd: u.canAdd
-    });
-  }
-}
-
 // ---- Data model ----
-
-var DEFAULT_TRANSACTIONS = [
-  { id: 10, date: 'May 25, 2026', amount: -50,   comment: 'The Oaks - Apple Cash',      originalComment: 'The Oaks - Apple Cash' },
-  { id: 9,  date: 'May 8, 2026',  amount: -20,   comment: 'The Oaks - PJ',              originalComment: 'The Oaks - PJ' },
-  { id: 8,  date: 'May 4, 2026',  amount:  23,   comment: 'Allowance',                  originalComment: 'Allowance' },
-  { id: 7,  date: 'Apr 6, 2026',  amount:  23,   comment: 'Allowance',                  originalComment: 'Allowance' },
-  { id: 6,  date: 'Mar 17, 2026', amount: -18,   comment: 'Amazon - curly hair gel',    originalComment: 'Amazon - curly hair gel' },
-  { id: 5,  date: 'Jan 21, 2026', amount:  20,   comment: 'Cash',                       originalComment: 'Cash' },
-  { id: 4,  date: 'Jan 21, 2026', amount: -10,   comment: '',                           originalComment: '' },
-  { id: 3,  date: 'Jan 16, 2026', amount: -10,   comment: 'Starbucks',                  originalComment: 'Starbucks' },
-  { id: 2,  date: 'Jan 1, 2026',  amount:  25,   comment: 'Allowance',                  originalComment: 'Allowance' },
-  { id: 1,  date: 'Jan 1, 2026',  amount:  20,   comment: 'Facial',                     originalComment: 'Facial' },
-  { id: 0,  date: 'Jan 1, 2026',  amount: 155,   comment: 'Opening balance',            originalComment: 'Opening balance' }
-];
 
 var transactions = [];
 var nextId       = 1;
@@ -130,16 +88,6 @@ var currentAction = null;
 
 async function saveData() {
   await setDoc(doc(db, 'appData', 'transactions'), { list: transactions });
-}
-
-async function loadData() {
-  var snap = await getDoc(doc(db, 'appData', 'transactions'));
-  if (snap.exists() && snap.data().list && snap.data().list.length > 0) {
-    transactions = snap.data().list;
-    nextId = transactions.reduce(function (max, t) { return Math.max(max, t.id + 1); }, 1);
-    return true;
-  }
-  return false;
 }
 
 function startLiveSync() {
@@ -331,14 +279,6 @@ document.addEventListener('DOMContentLoaded', async function () {
       }
     }
 
-    await seedUsersIfNeeded();
-
-    var hadData = await loadData();
-    if (!hadData) {
-      transactions = DEFAULT_TRANSACTIONS.slice();
-      nextId       = 11;
-      await saveData();
-    }
     startLiveSync();
   }
 
