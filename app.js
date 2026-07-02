@@ -322,7 +322,8 @@ async function loadVersion() {
 
 // ---- Chores ----
 
-var choresData        = { list: [], categories: ['Cleaning', 'Kitchen', 'Laundry', 'Errands', 'Pets'] };
+var choresData        = { list: [] };
+var sharedCategories  = ['Cleaning', 'Kitchen', 'Laundry', 'Errands', 'Pets'];
 var editingChoreId    = null;
 var currentChoreUser  = null; // { hash, alias } of the user whose chores are shown
 var choresUnsubscribe = null;
@@ -333,6 +334,17 @@ function choresDocRef() {
 
 async function saveChores() {
   await setDoc(choresDocRef(), choresData);
+}
+
+async function saveCategories() {
+  await setDoc(doc(db, 'choresData', 'config'), { categories: sharedCategories });
+}
+
+async function loadCategories() {
+  var snap = await getDoc(doc(db, 'choresData', 'config'));
+  if (snap.exists() && snap.data().categories) {
+    sharedCategories = snap.data().categories;
+  }
 }
 
 function formatDate(dateStr) {
@@ -376,7 +388,7 @@ function renderChores() {
   }
 
   var grouped = {};
-  choresData.categories.forEach(function (cat) { grouped[cat] = []; });
+  sharedCategories.forEach(function (cat) { grouped[cat] = []; });
   choresData.list.forEach(function (c) {
     if (!grouped[c.category]) grouped[c.category] = [];
     grouped[c.category].push(c);
@@ -627,7 +639,7 @@ function openChoreForm(id) {
   var picker = document.getElementById('day-picker');
 
   catEl.innerHTML = '';
-  choresData.categories.forEach(function (cat) {
+  sharedCategories.forEach(function (cat) {
     var opt = document.createElement('option');
     opt.value = cat;
     opt.textContent = cat;
@@ -756,9 +768,9 @@ function handleCategoryOverlayClick(event) {
 async function confirmCategory() {
   var name = document.getElementById('category-name').value.trim();
   if (!name) { alert('Please enter a category name.'); return; }
-  if (choresData.categories.includes(name)) { alert('That category already exists.'); return; }
-  choresData.categories.push(name);
-  await saveChores();
+  if (sharedCategories.includes(name)) { alert('That category already exists.'); return; }
+  sharedCategories.push(name);
+  await saveCategories();
   closeCategoryForm();
 }
 
@@ -834,10 +846,9 @@ function startChoresSync() {
   choresUnsubscribe = onSnapshot(choresDocRef(), async function (snap) {
     if (snap.exists()) {
       choresData = snap.data();
-      if (!choresData.categories) choresData.categories = ['Cleaning', 'Kitchen', 'Laundry', 'Errands', 'Pets'];
       if (!choresData.list) choresData.list = [];
     } else {
-      choresData = { list: [], categories: ['Cleaning', 'Kitchen', 'Laundry', 'Errands', 'Pets'] };
+      choresData = { list: [] };
     }
     if (firstLoad) {
       firstLoad = false;
@@ -908,6 +919,8 @@ document.addEventListener('DOMContentLoaded', async function () {
     var myHash = sessionStorage.getItem('loggedInUser');
     var myAlias = sessionStorage.getItem('alias') || 'Me';
     currentChoreUser = { hash: myHash, alias: myAlias };
+
+    await loadCategories();
 
     if (sessionStorage.getItem('canAdd') === 'true') {
       var allUsers = await loadChoreUsers();
