@@ -462,29 +462,70 @@ function renderChores() {
   });
 }
 
-function updateStreak(today) {
-  if (!choresData.streak) choresData.streak = { count: 0, completedDates: [] };
-  var s = choresData.streak;
+async function awardStreakBonus() {
+  try {
+    var snap = await getDoc(doc(db, 'appData', 'transactions'));
+    var list = (snap.exists() && snap.data().list) ? snap.data().list : [];
+    var maxId = list.reduce(function (m, t) { return Math.max(m, t.id); }, 0);
+    var today = new Date();
+    var dateStr = today.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    list.unshift({
+      id: maxId + 1,
+      date: dateStr,
+      amount: 2,
+      comment: '🎉 7-day chore streak bonus',
+      originalComment: '🎉 7-day chore streak bonus'
+    });
+    await setDoc(doc(db, 'appData', 'transactions'), { list: list });
+    showStreakToast();
+  } catch (e) {}
+}
 
-  if (!s.completedDates.includes(today)) {
+function showStreakToast() {
+  var existing = document.getElementById('streak-toast');
+  if (existing) existing.remove();
+
+  var toast = document.createElement('div');
+  toast.id = 'streak-toast';
+  toast.className = 'streak-toast';
+  toast.innerHTML = '🎉 7-day streak! <strong>+$2 bonus</strong> added to balance!';
+  document.body.appendChild(toast);
+
+  setTimeout(function () { toast.classList.add('visible'); }, 10);
+  setTimeout(function () {
+    toast.classList.remove('visible');
+    setTimeout(function () { toast.remove(); }, 400);
+  }, 4000);
+}
+
+function updateStreak(today) {
+  if (!choresData.streak) choresData.streak = { count: 0, completedDates: [], bonusesAwarded: 0 };
+  var s = choresData.streak;
+  if (!s.bonusesAwarded) s.bonusesAwarded = 0;
+
+  var isNewDay = !s.completedDates.includes(today);
+
+  if (isNewDay) {
     s.completedDates.push(today);
-    // keep only last 60 days
     s.completedDates = s.completedDates.slice(-60);
   }
 
-  // recalculate streak: count consecutive days back from today
+  // recalculate streak count
   var count = 0;
   var d = new Date(today);
   while (true) {
     var iso = d.toISOString().split('T')[0];
-    if (s.completedDates.includes(iso)) {
-      count++;
-      d.setDate(d.getDate() - 1);
-    } else {
-      break;
-    }
+    if (s.completedDates.includes(iso)) { count++; d.setDate(d.getDate() - 1); }
+    else break;
   }
   s.count = count;
+
+  // award $2 bonus for every new 7-day milestone
+  var milestones = Math.floor(count / 7);
+  if (milestones > s.bonusesAwarded) {
+    s.bonusesAwarded = milestones;
+    awardStreakBonus();
+  }
 }
 
 function renderStreak() {

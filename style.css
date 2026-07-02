@@ -742,6 +742,28 @@ header { position: relative; }
   border-color: #38a169;
 }
 
+.streak-toast {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: #2d3748;
+  color: white;
+  padding: 0.85rem 1.5rem;
+  border-radius: 50px;
+  font-size: 0.95rem;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+  opacity: 0;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  z-index: 200;
+  white-space: nowrap;
+}
+
+.streak-toast.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
 .streak-dot-label {
   font-size: 0.68rem;
   color: #a0aec0;
