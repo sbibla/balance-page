@@ -74,6 +74,7 @@ async function handleLogin() {
 
   sessionStorage.setItem('loggedInUser', usernameHash);
   sessionStorage.setItem('canAdd', match.canAdd ? 'true' : 'false');
+  sessionStorage.setItem('alias', match.alias || '');
   window.location.href = 'home.html';
 }
 
@@ -335,6 +336,11 @@ document.addEventListener('DOMContentLoaded', async function () {
     if (!sessionStorage.getItem('loggedInUser')) {
       window.location.href = 'index.html';
       return;
+    }
+    var alias = sessionStorage.getItem('alias');
+    var welcomeEl = document.getElementById('welcome-msg');
+    if (welcomeEl) {
+      welcomeEl.textContent = alias ? 'Welcome back, ' + alias : 'Welcome back';
     }
     prefetchTransactions();
   }
