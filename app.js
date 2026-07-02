@@ -323,8 +323,9 @@ async function loadVersion() {
 // ---- Boot ----
 
 document.addEventListener('DOMContentLoaded', async function () {
-  var allowedHosts = ['biblix.io', 'www.biblix.io'];
-  if (!allowedHosts.includes(window.location.hostname)) {
+  var allowedHosts = ['biblix.io', 'www.biblix.io', 'sbibla.github.io', 'localhost', '127.0.0.1'];
+  var isLocalFile = window.location.protocol === 'file:';
+  if (!isLocalFile && window.location.hostname && !allowedHosts.includes(window.location.hostname)) {
     window.location.replace('https://biblix.io');
     return;
   }
