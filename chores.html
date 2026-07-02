@@ -17,6 +17,14 @@
 
   <main class="chores-main">
 
+    <div class="streak-banner" id="streak-banner" style="display:none">
+      <div class="streak-top">
+        <span class="streak-fire">🔥</span>
+        <span class="streak-label" id="streak-label">0-day streak</span>
+      </div>
+      <div class="streak-dots" id="streak-dots"></div>
+    </div>
+
     <div class="chores-toolbar" id="chores-toolbar" style="display:none">
       <button class="chore-action-btn" onclick="openChoreForm()">+ Add Chore</button>
       <button class="chore-action-btn chore-action-secondary" onclick="openCategoryForm()">+ Category</button>

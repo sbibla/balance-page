@@ -348,6 +348,8 @@ function renderChores() {
   var container = document.getElementById('chores-container');
   if (!container) return;
 
+  renderStreak();
+
   var isAdmin = sessionStorage.getItem('canAdd') === 'true';
   var toolbar = document.getElementById('chores-toolbar');
   if (toolbar) toolbar.style.display = isAdmin ? 'flex' : 'none';
@@ -460,6 +462,69 @@ function renderChores() {
   });
 }
 
+function updateStreak(today) {
+  if (!choresData.streak) choresData.streak = { count: 0, completedDates: [] };
+  var s = choresData.streak;
+
+  if (!s.completedDates.includes(today)) {
+    s.completedDates.push(today);
+    // keep only last 60 days
+    s.completedDates = s.completedDates.slice(-60);
+  }
+
+  // recalculate streak: count consecutive days back from today
+  var count = 0;
+  var d = new Date(today);
+  while (true) {
+    var iso = d.toISOString().split('T')[0];
+    if (s.completedDates.includes(iso)) {
+      count++;
+      d.setDate(d.getDate() - 1);
+    } else {
+      break;
+    }
+  }
+  s.count = count;
+}
+
+function renderStreak() {
+  var banner = document.getElementById('streak-banner');
+  var label  = document.getElementById('streak-label');
+  var dots   = document.getElementById('streak-dots');
+  if (!banner) return;
+
+  var s = (choresData.streak) || { count: 0, completedDates: [] };
+  banner.style.display = 'flex';
+
+  var count = s.count || 0;
+  label.textContent = count === 1 ? '1-day streak!' : count + '-day streak' + (count > 1 ? '!' : '');
+
+  // Build last 7 day dots
+  dots.innerHTML = '';
+  for (var i = 6; i >= 0; i--) {
+    var d = new Date();
+    d.setDate(d.getDate() - i);
+    var iso = d.toISOString().split('T')[0];
+    var dayName = DAY_NAMES[d.getDay()];
+    var filled = s.completedDates && s.completedDates.includes(iso);
+
+    var wrap = document.createElement('div');
+    wrap.className = 'streak-dot-wrap';
+
+    var dot = document.createElement('div');
+    dot.className = 'streak-dot' + (filled ? ' filled' : '');
+    dot.innerHTML = filled ? '✓' : '';
+
+    var lbl = document.createElement('span');
+    lbl.className = 'streak-dot-label';
+    lbl.textContent = dayName;
+
+    wrap.appendChild(dot);
+    wrap.appendChild(lbl);
+    dots.appendChild(wrap);
+  }
+}
+
 async function toggleChore(id) {
   var chore = choresData.list.find(function (c) { return c.id === id; });
   if (!chore || chore.status === 'done') return;
@@ -474,6 +539,7 @@ async function toggleChore(id) {
   }
   if (!chore.history) chore.history = [];
   chore.history.unshift({ doneBy: alias, doneAt: today });
+  updateStreak(today);
   await saveChores();
 }
 
