@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chores — Bibla Apps</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <header>
+    <h1>Chores</h1>
+    <p class="subtitle">Never miss a chore again</p>
+    <a href="home.html" class="home-btn">⌂ Home</a>
+    <button class="logout-btn" onclick="logout()">Sign Out</button>
+  </header>
+
+  <main class="chores-main">
+
+    <div class="chores-toolbar" id="chores-toolbar" style="display:none">
+      <button class="chore-action-btn" onclick="openChoreForm()">+ Add Chore</button>
+      <button class="chore-action-btn chore-action-secondary" onclick="openCategoryForm()">+ Category</button>
+    </div>
+
+    <div id="chores-container">
+      <p class="chores-loading">⏳ Loading chores…</p>
+    </div>
+
+  </main>
+
+  <footer>
+    <p>Bibla Apps &mdash; <span class="version" id="app-version"></span></p>
+  </footer>
+
+  <!-- Add / Edit Chore modal -->
+  <div class="modal-overlay" id="chore-modal" onclick="handleChoreOverlayClick(event)">
+    <div class="modal">
+      <p class="modal-title" id="chore-modal-title">Add Chore</p>
+      <input type="text" id="chore-name" placeholder="Chore name (e.g. Vacuum living room)" />
+      <select id="chore-category" class="modal-select"></select>
+      <label class="modal-checkbox-label">
+        <input type="checkbox" id="chore-recurring-check" onchange="toggleRecurring()" />
+        Repeats every
+        <input type="number" id="chore-recurring-days" min="1" max="365" placeholder="7" class="inline-number" disabled />
+        days
+      </label>
+      <div class="form-actions">
+        <button class="form-confirm" id="chore-confirm-btn" onclick="confirmChore()">Save</button>
+        <button class="form-cancel" onclick="closeChoreForm()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Category modal -->
+  <div class="modal-overlay" id="category-modal" onclick="handleCategoryOverlayClick(event)">
+    <div class="modal">
+      <p class="modal-title">New Category</p>
+      <input type="text" id="category-name" placeholder="Category name (e.g. Garden)" />
+      <div class="form-actions">
+        <button class="form-confirm" onclick="confirmCategory()">Add</button>
+        <button class="form-cancel" onclick="closeCategoryForm()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chore history modal -->
+  <div class="modal-overlay" id="history-modal" onclick="closeHistoryModal()">
+    <div class="modal" onclick="event.stopPropagation()">
+      <p class="modal-title" id="history-modal-title">Chore History</p>
+      <ul class="chore-history-list" id="history-list"></ul>
+      <div class="form-actions">
+        <button class="form-cancel" style="flex:1" onclick="closeHistoryModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

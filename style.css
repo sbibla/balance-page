@@ -670,6 +670,210 @@ header { position: relative; }
 .login-btn:hover  { background-color: #3a5a8a; }
 .login-btn:active { transform: scale(0.98); }
 
+/* --- Chores page --- */
+.chores-main {
+  flex: 1;
+  max-width: 800px;
+  width: 100%;
+  margin: 2rem auto;
+  padding: 0 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.chores-toolbar {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+
+.chore-action-btn {
+  padding: 0.45rem 1.1rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  background-color: #4a6fa5;
+  color: white;
+  transition: background-color 0.2s ease;
+}
+
+.chore-action-btn:hover { background-color: #3a5a8a; }
+
+.chore-action-secondary {
+  background-color: #e2e8f0;
+  color: #4a5568;
+}
+
+.chore-action-secondary:hover { background-color: #cbd5e0; }
+
+.chores-loading {
+  text-align: center;
+  color: #a0aec0;
+  font-size: 0.95rem;
+  padding: 2rem 0;
+}
+
+.chore-category-section {
+  background: white;
+  border-radius: 28px;
+  padding: 1.25rem 1.5rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+}
+
+.chore-category-heading {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #a0aec0;
+  margin-bottom: 0.75rem;
+}
+
+.chore-list {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.chore-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.7rem 0;
+  border-bottom: 1px solid #f0f4f8;
+}
+
+.chore-item:last-child { border-bottom: none; }
+
+.chore-checkbox {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid #cbd5e0;
+  flex-shrink: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.2s, background-color 0.2s;
+  margin-top: 2px;
+}
+
+.chore-checkbox.checked {
+  background-color: #38a169;
+  border-color: #38a169;
+  color: white;
+  font-size: 0.75rem;
+}
+
+.chore-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.chore-name {
+  font-size: 0.97rem;
+  color: #2d3748;
+  font-weight: 500;
+}
+
+.chore-item.done .chore-name {
+  text-decoration: line-through;
+  color: #a0aec0;
+}
+
+.chore-meta {
+  font-size: 0.78rem;
+  color: #a0aec0;
+  margin-top: 0.2rem;
+}
+
+.chore-item.done .chore-meta {
+  color: #cbd5e0;
+}
+
+.chore-actions {
+  display: flex;
+  gap: 0.35rem;
+  flex-shrink: 0;
+  align-items: center;
+}
+
+.chore-icon-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: #a0aec0;
+  padding: 0.2rem 0.35rem;
+  border-radius: 6px;
+  transition: color 0.15s, background 0.15s;
+}
+
+.chore-icon-btn:hover { color: #4a6fa5; background: #ebf4ff; }
+.chore-icon-btn.undo:hover { color: #dd6b20; background: #fefcbf; }
+.chore-icon-btn.delete:hover { color: #e53e3e; background: #fff5f5; }
+
+/* --- Chore modal extras --- */
+.modal-select {
+  padding: 0.65rem 1rem;
+  border: 1px solid #cbd5e0;
+  border-radius: 50px;
+  font-size: 0.95rem;
+  outline: none;
+  color: #2d3748;
+  background: white;
+  transition: border-color 0.2s;
+}
+
+.modal-select:focus { border-color: #4a6fa5; }
+
+.modal-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: #4a5568;
+  padding: 0 0.25rem;
+}
+
+.inline-number {
+  width: 56px;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid #cbd5e0;
+  border-radius: 50px;
+  font-size: 0.9rem;
+  text-align: center;
+  outline: none;
+}
+
+.inline-number:disabled { background: #f7fafc; color: #a0aec0; }
+.inline-number:focus { border-color: #4a6fa5; }
+
+.chore-history-list {
+  list-style: none;
+  padding: 0;
+  max-height: 220px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.chore-history-list li {
+  font-size: 0.88rem;
+  color: #4a5568;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid #f0f4f8;
+}
+
+.chore-history-list li:last-child { border-bottom: none; }
+
 /* --- Responsive (looks good on phones too) --- */
 @media (max-width: 600px) {
   header h1 {

@@ -320,6 +320,321 @@ async function loadVersion() {
   } catch (e) {}
 }
 
+// ---- Chores ----
+
+var choresData   = { list: [], categories: ['Cleaning', 'Kitchen', 'Laundry', 'Errands', 'Pets'] };
+var editingChoreId = null;
+
+async function saveChores() {
+  await setDoc(doc(db, 'choresData', 'main'), choresData);
+}
+
+function formatDate(dateStr) {
+  var d = new Date(dateStr);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function addDays(dateStr, days) {
+  var d = new Date(dateStr);
+  d.setDate(d.getDate() + days);
+  return d.toISOString().split('T')[0];
+}
+
+function todayISO() {
+  return new Date().toISOString().split('T')[0];
+}
+
+function renderChores() {
+  var container = document.getElementById('chores-container');
+  if (!container) return;
+
+  var isAdmin = sessionStorage.getItem('canAdd') === 'true';
+  var toolbar = document.getElementById('chores-toolbar');
+  if (toolbar) toolbar.style.display = isAdmin ? 'flex' : 'none';
+
+  if (choresData.list.length === 0) {
+    container.innerHTML = '<p class="chores-loading">No chores yet' + (isAdmin ? ' — use &quot;+ Add Chore&quot; to get started.' : '.') + '</p>';
+    return;
+  }
+
+  var grouped = {};
+  choresData.categories.forEach(function (cat) { grouped[cat] = []; });
+  choresData.list.forEach(function (c) {
+    if (!grouped[c.category]) grouped[c.category] = [];
+    grouped[c.category].push(c);
+  });
+
+  container.innerHTML = '';
+  Object.keys(grouped).forEach(function (cat) {
+    var chores = grouped[cat];
+    if (chores.length === 0) return;
+
+    var section = document.createElement('div');
+    section.className = 'chore-category-section';
+
+    var heading = document.createElement('p');
+    heading.className = 'chore-category-heading';
+    heading.textContent = cat;
+    section.appendChild(heading);
+
+    var ul = document.createElement('ul');
+    ul.className = 'chore-list';
+
+    chores.forEach(function (chore) {
+      var isDone = chore.status === 'done';
+      var li = document.createElement('li');
+      li.className = 'chore-item' + (isDone ? ' done' : '');
+
+      var checkbox = document.createElement('div');
+      checkbox.className = 'chore-checkbox' + (isDone ? ' checked' : '');
+      checkbox.innerHTML = isDone ? '✓' : '';
+      checkbox.onclick = function () { toggleChore(chore.id); };
+
+      var body = document.createElement('div');
+      body.className = 'chore-body';
+
+      var nameEl = document.createElement('div');
+      nameEl.className = 'chore-name';
+      nameEl.textContent = chore.name;
+
+      var metaEl = document.createElement('div');
+      metaEl.className = 'chore-meta';
+      if (isDone) {
+        var metaParts = [];
+        if (chore.doneBy) metaParts.push('Done by ' + chore.doneBy + ' · ' + formatDate(chore.doneAt));
+        if (chore.recurringDays && chore.nextOccurrence) {
+          metaParts.push('Next: ' + formatDate(chore.nextOccurrence));
+        }
+        metaEl.textContent = metaParts.join(' · ');
+      } else if (chore.recurringDays) {
+        metaEl.textContent = 'Repeats every ' + chore.recurringDays + ' day' + (chore.recurringDays > 1 ? 's' : '');
+      }
+
+      body.appendChild(nameEl);
+      body.appendChild(metaEl);
+
+      var actions = document.createElement('div');
+      actions.className = 'chore-actions';
+
+      if (isDone) {
+        var undoBtn = document.createElement('button');
+        undoBtn.className = 'chore-icon-btn undo';
+        undoBtn.title = 'Undo';
+        undoBtn.textContent = '↩';
+        undoBtn.onclick = function () { undoChore(chore.id); };
+        actions.appendChild(undoBtn);
+      }
+
+      var histBtn = document.createElement('button');
+      histBtn.className = 'chore-icon-btn';
+      histBtn.title = 'History';
+      histBtn.textContent = '📋';
+      histBtn.onclick = function () { showChoreHistory(chore); };
+      actions.appendChild(histBtn);
+
+      if (isAdmin) {
+        var editBtn = document.createElement('button');
+        editBtn.className = 'chore-icon-btn';
+        editBtn.title = 'Edit';
+        editBtn.textContent = '✏️';
+        editBtn.onclick = function () { openChoreForm(chore.id); };
+        actions.appendChild(editBtn);
+
+        var delBtn = document.createElement('button');
+        delBtn.className = 'chore-icon-btn delete';
+        delBtn.title = 'Delete';
+        delBtn.textContent = '🗑';
+        delBtn.onclick = function () { deleteChore(chore.id); };
+        actions.appendChild(delBtn);
+      }
+
+      li.appendChild(checkbox);
+      li.appendChild(body);
+      li.appendChild(actions);
+      ul.appendChild(li);
+    });
+
+    section.appendChild(ul);
+    container.appendChild(section);
+  });
+}
+
+async function toggleChore(id) {
+  var chore = choresData.list.find(function (c) { return c.id === id; });
+  if (!chore || chore.status === 'done') return;
+
+  var alias = sessionStorage.getItem('alias') || 'Someone';
+  var today = todayISO();
+  chore.status = 'done';
+  chore.doneBy = alias;
+  chore.doneAt = today;
+  if (chore.recurringDays) {
+    chore.nextOccurrence = addDays(today, chore.recurringDays);
+  }
+  if (!chore.history) chore.history = [];
+  chore.history.unshift({ doneBy: alias, doneAt: today });
+  await saveChores();
+}
+
+async function undoChore(id) {
+  var chore = choresData.list.find(function (c) { return c.id === id; });
+  if (!chore) return;
+  chore.status = 'pending';
+  chore.doneBy = null;
+  chore.doneAt = null;
+  chore.nextOccurrence = null;
+  if (chore.history && chore.history.length > 0) chore.history.shift();
+  await saveChores();
+}
+
+async function deleteChore(id) {
+  if (!confirm('Delete this chore?')) return;
+  choresData.list = choresData.list.filter(function (c) { return c.id !== id; });
+  await saveChores();
+}
+
+function openChoreForm(id) {
+  editingChoreId = id || null;
+  var modal = document.getElementById('chore-modal');
+  var titleEl = document.getElementById('chore-modal-title');
+  var nameEl = document.getElementById('chore-name');
+  var catEl = document.getElementById('chore-category');
+  var recurCheck = document.getElementById('chore-recurring-check');
+  var recurDays = document.getElementById('chore-recurring-days');
+
+  catEl.innerHTML = '';
+  choresData.categories.forEach(function (cat) {
+    var opt = document.createElement('option');
+    opt.value = cat;
+    opt.textContent = cat;
+    catEl.appendChild(opt);
+  });
+
+  if (id) {
+    var chore = choresData.list.find(function (c) { return c.id === id; });
+    titleEl.textContent = 'Edit Chore';
+    nameEl.value = chore.name;
+    catEl.value = chore.category;
+    recurCheck.checked = !!chore.recurringDays;
+    recurDays.disabled = !chore.recurringDays;
+    recurDays.value = chore.recurringDays || '';
+  } else {
+    titleEl.textContent = 'Add Chore';
+    nameEl.value = '';
+    catEl.selectedIndex = 0;
+    recurCheck.checked = false;
+    recurDays.disabled = true;
+    recurDays.value = '';
+  }
+
+  modal.classList.add('open');
+  setTimeout(function () { nameEl.focus(); }, 50);
+}
+
+function closeChoreForm() {
+  document.getElementById('chore-modal').classList.remove('open');
+  editingChoreId = null;
+}
+
+function handleChoreOverlayClick(event) {
+  if (event.target === document.getElementById('chore-modal')) closeChoreForm();
+}
+
+function toggleRecurring() {
+  var check = document.getElementById('chore-recurring-check');
+  var days = document.getElementById('chore-recurring-days');
+  days.disabled = !check.checked;
+  if (check.checked) days.focus();
+}
+
+async function confirmChore() {
+  var name = document.getElementById('chore-name').value.trim();
+  var category = document.getElementById('chore-category').value;
+  var isRecurring = document.getElementById('chore-recurring-check').checked;
+  var days = parseInt(document.getElementById('chore-recurring-days').value);
+
+  if (!name) { alert('Please enter a chore name.'); return; }
+  if (isRecurring && (!days || days < 1)) { alert('Please enter a valid number of days.'); return; }
+
+  if (editingChoreId) {
+    var chore = choresData.list.find(function (c) { return c.id === editingChoreId; });
+    chore.name = name;
+    chore.category = category;
+    chore.recurringDays = isRecurring ? days : null;
+  } else {
+    var maxId = choresData.list.reduce(function (m, c) { return Math.max(m, c.id); }, 0);
+    choresData.list.push({
+      id: maxId + 1,
+      name: name,
+      category: category,
+      status: 'pending',
+      recurringDays: isRecurring ? days : null,
+      doneBy: null,
+      doneAt: null,
+      nextOccurrence: null,
+      history: []
+    });
+  }
+
+  await saveChores();
+  closeChoreForm();
+}
+
+function openCategoryForm() {
+  document.getElementById('category-name').value = '';
+  document.getElementById('category-modal').classList.add('open');
+  setTimeout(function () { document.getElementById('category-name').focus(); }, 50);
+}
+
+function closeCategoryForm() {
+  document.getElementById('category-modal').classList.remove('open');
+}
+
+function handleCategoryOverlayClick(event) {
+  if (event.target === document.getElementById('category-modal')) closeCategoryForm();
+}
+
+async function confirmCategory() {
+  var name = document.getElementById('category-name').value.trim();
+  if (!name) { alert('Please enter a category name.'); return; }
+  if (choresData.categories.includes(name)) { alert('That category already exists.'); return; }
+  choresData.categories.push(name);
+  await saveChores();
+  closeCategoryForm();
+}
+
+function showChoreHistory(chore) {
+  var modal = document.getElementById('history-modal');
+  document.getElementById('history-modal-title').textContent = chore.name + ' — History';
+  var list = document.getElementById('history-list');
+  list.innerHTML = '';
+  if (!chore.history || chore.history.length === 0) {
+    list.innerHTML = '<li>No history yet.</li>';
+  } else {
+    chore.history.forEach(function (entry) {
+      var li = document.createElement('li');
+      li.textContent = 'Done by ' + entry.doneBy + ' · ' + formatDate(entry.doneAt);
+      list.appendChild(li);
+    });
+  }
+  modal.classList.add('open');
+}
+
+function closeHistoryModal() {
+  document.getElementById('history-modal').classList.remove('open');
+}
+
+function startChoresSync() {
+  onSnapshot(doc(db, 'choresData', 'main'), function (snap) {
+    if (snap.exists()) {
+      choresData = snap.data();
+      if (!choresData.categories) choresData.categories = ['Cleaning', 'Kitchen', 'Laundry', 'Errands', 'Pets'];
+      if (!choresData.list) choresData.list = [];
+    }
+    renderChores();
+  });
+}
+
 // ---- Boot ----
 
 document.addEventListener('DOMContentLoaded', async function () {
@@ -371,6 +686,15 @@ document.addEventListener('DOMContentLoaded', async function () {
     startLiveSync();
   }
 
+  // Chores page guard
+  if (document.getElementById('chores-container')) {
+    if (!sessionStorage.getItem('loggedInUser')) {
+      window.location.href = 'index.html';
+      return;
+    }
+    startChoresSync();
+  }
+
   // Login page — wire up Enter key
   var fields = ['login-username', 'login-password'];
   fields.forEach(function (id) {
@@ -382,11 +706,21 @@ document.addEventListener('DOMContentLoaded', async function () {
 });
 
 // Expose functions called from HTML onclick attributes
-window.openApp            = openApp;
-window.handleLogin        = handleLogin;
-window.logout             = logout;
-window.openForm           = openForm;
-window.closeForm          = closeForm;
-window.handleOverlayClick = handleOverlayClick;
-window.confirmTransaction = confirmTransaction;
-window.editComment        = editComment;
+window.openApp                  = openApp;
+window.handleLogin              = handleLogin;
+window.logout                   = logout;
+window.openForm                 = openForm;
+window.closeForm                = closeForm;
+window.handleOverlayClick       = handleOverlayClick;
+window.confirmTransaction       = confirmTransaction;
+window.editComment              = editComment;
+window.openChoreForm            = openChoreForm;
+window.closeChoreForm           = closeChoreForm;
+window.handleChoreOverlayClick  = handleChoreOverlayClick;
+window.toggleRecurring          = toggleRecurring;
+window.confirmChore             = confirmChore;
+window.openCategoryForm         = openCategoryForm;
+window.closeCategoryForm        = closeCategoryForm;
+window.handleCategoryOverlayClick = handleCategoryOverlayClick;
+window.confirmCategory          = confirmCategory;
+window.closeHistoryModal        = closeHistoryModal;
