@@ -3,7 +3,7 @@
 // =============================================
 
 import { initializeApp }              from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getFirestore, doc, getDoc, setDoc }
+import { getFirestore, doc, getDoc, setDoc, onSnapshot }
                                        from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
 // ---- Firebase setup ----
@@ -115,6 +115,16 @@ async function loadData() {
     return true;
   }
   return false;
+}
+
+function startLiveSync() {
+  onSnapshot(doc(db, 'appData', 'transactions'), function (snap) {
+    if (snap.exists() && snap.data().list) {
+      transactions = snap.data().list;
+      nextId = transactions.reduce(function (max, t) { return Math.max(max, t.id + 1); }, 1);
+      renderAll();
+    }
+  });
 }
 
 
@@ -302,7 +312,7 @@ document.addEventListener('DOMContentLoaded', async function () {
       nextId       = 11;
       await saveData();
     }
-    renderAll();
+    startLiveSync();
   }
 
   // Login page — wire up Enter key
