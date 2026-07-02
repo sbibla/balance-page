@@ -117,39 +117,6 @@ async function loadData() {
   return false;
 }
 
-function exportTransactions() {
-  var data = JSON.stringify({ transactions: transactions }, null, 2);
-  var blob = new Blob([data], { type: 'application/json' });
-  var url  = URL.createObjectURL(blob);
-  var a    = document.createElement('a');
-  a.href = url;
-  a.download = 'transactions.json';
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-async function importTransactions(event) {
-  var file = event.target.files[0];
-  if (!file) return;
-  var reader = new FileReader();
-  reader.onload = async function (e) {
-    try {
-      var parsed = JSON.parse(e.target.result);
-      if (!parsed.transactions || !Array.isArray(parsed.transactions)) {
-        alert('This file does not look like a valid transactions file.');
-        return;
-      }
-      transactions = parsed.transactions;
-      nextId = transactions.reduce(function (max, t) { return Math.max(max, t.id + 1); }, 1);
-      await saveData();
-      renderAll();
-      event.target.value = '';
-    } catch (err) {
-      alert('Could not read the file. Make sure it is a valid transactions.json file.');
-    }
-  };
-  reader.readAsText(file);
-}
 
 // ---- Rendering ----
 
@@ -355,6 +322,4 @@ window.openForm           = openForm;
 window.closeForm          = closeForm;
 window.handleOverlayClick = handleOverlayClick;
 window.confirmTransaction = confirmTransaction;
-window.exportTransactions = exportTransactions;
-window.importTransactions = importTransactions;
 window.editComment        = editComment;
