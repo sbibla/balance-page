@@ -3,7 +3,7 @@
 // =============================================
 
 import { initializeApp }              from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getFirestore, doc, getDoc, setDoc, onSnapshot }
+import { getFirestore, doc, getDoc, getDocs, setDoc, onSnapshot, collection }
                                        from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
 // ---- Firebase setup ----
@@ -322,11 +322,17 @@ async function loadVersion() {
 
 // ---- Chores ----
 
-var choresData   = { list: [], categories: ['Cleaning', 'Kitchen', 'Laundry', 'Errands', 'Pets'] };
-var editingChoreId = null;
+var choresData        = { list: [], categories: ['Cleaning', 'Kitchen', 'Laundry', 'Errands', 'Pets'] };
+var editingChoreId    = null;
+var currentChoreUser  = null; // { hash, alias } of the user whose chores are shown
+var choresUnsubscribe = null;
+
+function choresDocRef() {
+  return doc(db, 'choresData', currentChoreUser.hash);
+}
 
 async function saveChores() {
-  await setDoc(doc(db, 'choresData', 'main'), choresData);
+  await setDoc(choresDocRef(), choresData);
 }
 
 function formatDate(dateStr) {
@@ -794,13 +800,44 @@ async function resetOverdueRecurring() {
   if (changed) await saveChores();
 }
 
+async function loadChoreUsers() {
+  var snap = await getDocs(collection(db, 'users'));
+  var users = [];
+  snap.forEach(function (d) {
+    users.push({ hash: d.id, alias: d.data().alias || d.id.slice(0, 6) });
+  });
+  return users;
+}
+
+function renderUserPicker(users) {
+  var picker = document.getElementById('chore-user-picker');
+  if (!picker) return;
+  picker.innerHTML = '';
+  users.forEach(function (u) {
+    var btn = document.createElement('button');
+    btn.className = 'user-pick-btn' + (u.hash === currentChoreUser.hash ? ' active' : '');
+    btn.textContent = u.alias;
+    btn.onclick = function () { switchChoreUser(u, users); };
+    picker.appendChild(btn);
+  });
+}
+
+function switchChoreUser(user, users) {
+  currentChoreUser = user;
+  renderUserPicker(users);
+  startChoresSync();
+}
+
 function startChoresSync() {
+  if (choresUnsubscribe) choresUnsubscribe();
   var firstLoad = true;
-  onSnapshot(doc(db, 'choresData', 'main'), async function (snap) {
+  choresUnsubscribe = onSnapshot(choresDocRef(), async function (snap) {
     if (snap.exists()) {
       choresData = snap.data();
       if (!choresData.categories) choresData.categories = ['Cleaning', 'Kitchen', 'Laundry', 'Errands', 'Pets'];
       if (!choresData.list) choresData.list = [];
+    } else {
+      choresData = { list: [], categories: ['Cleaning', 'Kitchen', 'Laundry', 'Errands', 'Pets'] };
     }
     if (firstLoad) {
       firstLoad = false;
@@ -867,6 +904,17 @@ document.addEventListener('DOMContentLoaded', async function () {
     if (!sessionStorage.getItem('loggedInUser')) {
       window.location.href = 'index.html';
       return;
+    }
+    var myHash = sessionStorage.getItem('loggedInUser');
+    var myAlias = sessionStorage.getItem('alias') || 'Me';
+    currentChoreUser = { hash: myHash, alias: myAlias };
+
+    if (sessionStorage.getItem('canAdd') === 'true') {
+      var allUsers = await loadChoreUsers();
+      var pickerWrap = document.getElementById('chore-user-picker-wrap');
+      if (pickerWrap && allUsers.length > 1) pickerWrap.style.display = 'flex';
+      renderUserPicker(allUsers);
+      window._choreUsers = allUsers;
     }
     startChoresSync();
   }
