@@ -334,6 +334,16 @@ function formatDate(dateStr) {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
+function formatDateTime(dateStr) {
+  var d = new Date(dateStr);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) +
+    ' · ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+}
+
+function nowISO() {
+  return new Date().toISOString();
+}
+
 function addDays(dateStr, days) {
   var d = new Date(dateStr);
   d.setDate(d.getDate() + days);
@@ -404,7 +414,7 @@ function renderChores() {
       var hasRecurring = Array.isArray(chore.recurringDays) && chore.recurringDays.length > 0;
       if (isDone) {
         var metaParts = [];
-        if (chore.doneBy) metaParts.push('Done by ' + chore.doneBy + ' · ' + formatDate(chore.doneAt));
+        if (chore.doneBy) metaParts.push('Done by ' + chore.doneBy + ' · ' + formatDateTime(chore.doneAt));
         if (hasRecurring && chore.nextOccurrence) {
           metaParts.push('Next: ' + formatDate(chore.nextOccurrence));
         }
@@ -574,12 +584,12 @@ async function toggleChore(id) {
   var today = todayISO();
   chore.status = 'done';
   chore.doneBy = alias;
-  chore.doneAt = today;
+  chore.doneAt = nowISO();
   if (Array.isArray(chore.recurringDays) && chore.recurringDays.length > 0) {
     chore.nextOccurrence = nextOccurrenceFromDays(chore.recurringDays);
   }
   if (!chore.history) chore.history = [];
-  chore.history.unshift({ doneBy: alias, doneAt: today });
+  chore.history.unshift({ doneBy: alias, doneAt: nowISO() });
   updateStreak(today);
   await saveChores();
 }
@@ -756,7 +766,7 @@ function showChoreHistory(chore) {
   } else {
     chore.history.forEach(function (entry) {
       var li = document.createElement('li');
-      li.textContent = 'Done by ' + entry.doneBy + ' · ' + formatDate(entry.doneAt);
+      li.textContent = 'Done by ' + entry.doneBy + ' · ' + formatDateTime(entry.doneAt);
       list.appendChild(li);
     });
   }
