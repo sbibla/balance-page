@@ -3,7 +3,7 @@
 // =============================================
 
 import { initializeApp }              from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getFirestore, doc, setDoc, onSnapshot }
+import { getFirestore, doc, getDoc, setDoc, onSnapshot }
                                        from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
 // ---- Firebase setup ----
