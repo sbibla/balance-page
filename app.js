@@ -74,7 +74,7 @@ async function handleLogin() {
 
   sessionStorage.setItem('loggedInUser', usernameHash);
   sessionStorage.setItem('canAdd', match.canAdd ? 'true' : 'false');
-  window.location.href = 'balance.html';
+  window.location.href = 'home.html';
 }
 
 function showLoginError(msg) {
@@ -286,6 +286,14 @@ async function loadVersion() {
 
 document.addEventListener('DOMContentLoaded', async function () {
   loadVersion();
+
+  // Home page guard
+  if (document.querySelector('.home-main')) {
+    if (!sessionStorage.getItem('loggedInUser')) {
+      window.location.href = 'index.html';
+      return;
+    }
+  }
 
   // Balance page guard
   if (document.getElementById('balance-display')) {

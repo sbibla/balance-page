@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bibla Apps</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <header>
+    <h1>Bibla Apps</h1>
+    <p class="subtitle">Welcome back</p>
+    <button class="logout-btn" onclick="logout()">Sign Out</button>
+  </header>
+
+  <main class="home-main">
+
+    <a href="balance.html" class="app-tile">
+      <div class="tile-icon">💰</div>
+      <div class="tile-label">Balance</div>
+      <div class="tile-desc">Track your spending and deposits</div>
+    </a>
+
+    <div class="app-tile tile-disabled">
+      <div class="tile-badge">Coming Soon</div>
+      <div class="tile-icon">📊</div>
+      <div class="tile-label">Budget Planner</div>
+      <div class="tile-desc">Set and manage monthly budgets</div>
+    </div>
+
+    <div class="app-tile tile-disabled">
+      <div class="tile-badge">Coming Soon</div>
+      <div class="tile-icon">🎯</div>
+      <div class="tile-label">Savings Goals</div>
+      <div class="tile-desc">Save towards what matters most</div>
+    </div>
+
+    <div class="app-tile tile-disabled">
+      <div class="tile-badge">Coming Soon</div>
+      <div class="tile-icon">📈</div>
+      <div class="tile-label">Reports</div>
+      <div class="tile-desc">Monthly summaries and trends</div>
+    </div>
+
+    <div class="app-tile tile-disabled">
+      <div class="tile-badge">Coming Soon</div>
+      <div class="tile-icon">🧾</div>
+      <div class="tile-label">Expense Tracker</div>
+      <div class="tile-desc">Categorise and review expenses</div>
+    </div>
+
+    <div class="app-tile tile-disabled">
+      <div class="tile-badge">Coming Soon</div>
+      <div class="tile-icon">💳</div>
+      <div class="tile-label">Bills</div>
+      <div class="tile-desc">Never miss a payment again</div>
+    </div>
+
+  </main>
+
+  <footer>
+    <p>Bibla Apps &mdash; <span class="version" id="app-version"></span></p>
+  </footer>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
