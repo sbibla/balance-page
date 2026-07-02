@@ -100,11 +100,19 @@ async function saveData() {
   await setDoc(doc(db, 'appData', 'transactions'), { list: transactions });
 }
 
+function showBalanceLoading(visible) {
+  var el = document.getElementById('balance-loading');
+  var list = document.getElementById('transaction-list');
+  if (el) el.style.display = visible ? 'block' : 'none';
+  if (list) list.style.display = visible ? 'none' : '';
+}
+
 function startLiveSync() {
   onSnapshot(doc(db, 'appData', 'transactions'), function (snap) {
     if (snap.exists() && snap.data().list) {
       transactions = snap.data().list;
       nextId = transactions.reduce(function (max, t) { return Math.max(max, t.id + 1); }, 1);
+      showBalanceLoading(false);
       renderAll();
     }
   });
@@ -271,6 +279,35 @@ function showOriginal(badge, originalText) {
   }, 0);
 }
 
+// ---- Background prefetch (runs on home page) ----
+
+async function prefetchTransactions() {
+  try {
+    var snap = await getDoc(doc(db, 'appData', 'transactions'));
+    if (snap.exists() && snap.data().list) {
+      sessionStorage.setItem('prefetched_transactions', JSON.stringify(snap.data().list));
+    }
+  } catch (e) {}
+}
+
+function openApp(event, url) {
+  if (sessionStorage.getItem('prefetched_transactions')) {
+    return; // data ready — let the link navigate normally
+  }
+  event.preventDefault();
+  var tile = document.getElementById('balance-tile');
+  tile.classList.add('tile-loading');
+
+  var waited = 0;
+  var interval = setInterval(function () {
+    waited += 100;
+    if (sessionStorage.getItem('prefetched_transactions') || waited >= 5000) {
+      clearInterval(interval);
+      window.location.href = url;
+    }
+  }, 100);
+}
+
 // ---- Version ----
 
 async function loadVersion() {
@@ -287,12 +324,13 @@ async function loadVersion() {
 document.addEventListener('DOMContentLoaded', async function () {
   loadVersion();
 
-  // Home page guard
+  // Home page guard + background prefetch
   if (document.querySelector('.home-main')) {
     if (!sessionStorage.getItem('loggedInUser')) {
       window.location.href = 'index.html';
       return;
     }
+    prefetchTransactions();
   }
 
   // Balance page guard
@@ -309,6 +347,15 @@ document.addEventListener('DOMContentLoaded', async function () {
       }
     }
 
+    var prefetched = sessionStorage.getItem('prefetched_transactions');
+    if (prefetched) {
+      transactions = JSON.parse(prefetched);
+      nextId = transactions.reduce(function (max, t) { return Math.max(max, t.id + 1); }, 1);
+      sessionStorage.removeItem('prefetched_transactions');
+      renderAll();
+    } else {
+      showBalanceLoading(true);
+    }
     startLiveSync();
   }
 
@@ -323,6 +370,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 });
 
 // Expose functions called from HTML onclick attributes
+window.openApp            = openApp;
 window.handleLogin        = handleLogin;
 window.logout             = logout;
 window.openForm           = openForm;

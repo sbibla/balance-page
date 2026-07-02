@@ -509,6 +509,24 @@ header { position: relative; }
   pointer-events: none;
 }
 
+.tile-loading {
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.tile-loading .tile-icon::after {
+  content: ' ⏳';
+}
+
+/* --- Balance loading state --- */
+.balance-loading-msg {
+  display: none;
+  text-align: center;
+  color: #a0aec0;
+  font-size: 0.95rem;
+  padding: 1.5rem 0;
+}
+
 .tile-badge {
   position: absolute;
   top: 1rem;
