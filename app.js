@@ -767,14 +767,37 @@ function closeHistoryModal() {
   document.getElementById('history-modal').classList.remove('open');
 }
 
+async function resetOverdueRecurring() {
+  var today = todayISO();
+  var changed = false;
+  choresData.list.forEach(function (chore) {
+    if (chore.status === 'done' && Array.isArray(chore.recurringDays) && chore.recurringDays.length > 0) {
+      if (chore.nextOccurrence && chore.nextOccurrence <= today) {
+        chore.status = 'pending';
+        chore.doneBy = null;
+        chore.doneAt = null;
+        chore.nextOccurrence = null;
+        changed = true;
+      }
+    }
+  });
+  if (changed) await saveChores();
+}
+
 function startChoresSync() {
-  onSnapshot(doc(db, 'choresData', 'main'), function (snap) {
+  var firstLoad = true;
+  onSnapshot(doc(db, 'choresData', 'main'), async function (snap) {
     if (snap.exists()) {
       choresData = snap.data();
       if (!choresData.categories) choresData.categories = ['Cleaning', 'Kitchen', 'Laundry', 'Errands', 'Pets'];
       if (!choresData.list) choresData.list = [];
     }
-    renderChores();
+    if (firstLoad) {
+      firstLoad = false;
+      await resetOverdueRecurring();
+    } else {
+      renderChores();
+    }
   });
 }
 
