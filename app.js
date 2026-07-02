@@ -3,7 +3,7 @@
 // =============================================
 
 import { initializeApp }              from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getFirestore, doc, getDoc, setDoc, onSnapshot }
+import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, getDocs, query }
                                        from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
 // ---- Firebase setup ----
@@ -46,19 +46,16 @@ async function handleLogin() {
   var usernameHash = await sha256(username);
   var passwordHash = await sha256(password);
 
-  var users;
+  var match;
   try {
-    var res  = await fetch('users.json');
-    var data = await res.json();
-    users = data.users;
+    var userSnap = await getDoc(doc(db, 'users', usernameHash));
+    if (userSnap.exists() && userSnap.data().passwordHash === passwordHash) {
+      match = userSnap.data();
+    }
   } catch (e) {
-    showLoginError('Could not load user data. Please try again.');
+    showLoginError('Could not reach the server. Please try again.');
     return;
   }
-
-  var match = users.find(function (u) {
-    return u.usernameHash === usernameHash && u.passwordHash === passwordHash;
-  });
 
   if (!match) {
     showLoginError('Incorrect username or PIN. Please try again.');
@@ -79,6 +76,34 @@ function showLoginError(msg) {
 function logout() {
   sessionStorage.clear();
   window.location.href = 'index.html';
+}
+
+// ---- User seeding (runs once if users collection is empty) ----
+
+async function seedUsersIfNeeded() {
+  var snap = await getDocs(query(collection(db, 'users')));
+  if (!snap.empty) return;
+
+  // Hashes of: mika/694227 and sbibla/123456
+  var seed = [
+    {
+      usernameHash: '1567e79a15758616ee6c7bccbbd6f2bafcf3de6c49e7dd31fe6cd8a63d944359',
+      passwordHash: 'b676ba5b01861ecd063e7fc69f102708009cc780d4bcb8dd58460e69738cf455',
+      canAdd: false
+    },
+    {
+      usernameHash: '0bbf0c3dff2524bc2a80c7fb2a21e31ebb5efe7c2a699ebd9164799fac3926d6',
+      passwordHash: '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92',
+      canAdd: true
+    }
+  ];
+
+  for (var u of seed) {
+    await setDoc(doc(db, 'users', u.usernameHash), {
+      passwordHash: u.passwordHash,
+      canAdd: u.canAdd
+    });
+  }
 }
 
 // ---- Data model ----
@@ -305,6 +330,8 @@ document.addEventListener('DOMContentLoaded', async function () {
         addBtn.title    = 'You do not have permission to add funds';
       }
     }
+
+    await seedUsersIfNeeded();
 
     var hadData = await loadData();
     if (!hadData) {
