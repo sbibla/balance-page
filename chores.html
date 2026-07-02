@@ -50,6 +50,12 @@
       <p class="modal-title" id="chore-modal-title">Add Chore</p>
       <input type="text" id="chore-name" placeholder="Chore name (e.g. Vacuum living room)" />
       <select id="chore-category" class="modal-select"></select>
+      <div class="time-of-day-picker" id="time-of-day-picker">
+        <button type="button" class="tod-btn" data-tod="morning">🌅 Morning</button>
+        <button type="button" class="tod-btn" data-tod="afternoon">☀️ Afternoon</button>
+        <button type="button" class="tod-btn" data-tod="evening">🌙 Evening</button>
+      </div>
+
       <label class="modal-checkbox-label">
         <input type="checkbox" id="chore-recurring-check" onchange="toggleRecurring()" />
         Repeats on specific days

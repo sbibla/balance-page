@@ -426,6 +426,13 @@ function renderChores() {
       var nameEl = document.createElement('div');
       nameEl.className = 'chore-name';
       nameEl.textContent = chore.name;
+      if (chore.timeOfDay) {
+        var todIcons = { morning: '🌅', afternoon: '☀️', evening: '🌙' };
+        var tag = document.createElement('span');
+        tag.className = 'tod-tag tod-' + chore.timeOfDay;
+        tag.textContent = todIcons[chore.timeOfDay] + ' ' + chore.timeOfDay.charAt(0).toUpperCase() + chore.timeOfDay.slice(1);
+        nameEl.appendChild(tag);
+      }
 
       var metaEl = document.createElement('div');
       metaEl.className = 'chore-meta';
@@ -646,6 +653,16 @@ function openChoreForm(id) {
     catEl.appendChild(opt);
   });
 
+  // Wire up time-of-day buttons (single select, click again to deselect)
+  document.querySelectorAll('.tod-btn').forEach(function (btn) {
+    btn.classList.remove('selected');
+    btn.onclick = function () {
+      var isSelected = btn.classList.contains('selected');
+      document.querySelectorAll('.tod-btn').forEach(function (b) { b.classList.remove('selected'); });
+      if (!isSelected) btn.classList.add('selected');
+    };
+  });
+
   // Wire up day buttons
   picker.querySelectorAll('.day-btn').forEach(function (btn) {
     btn.classList.remove('selected');
@@ -665,6 +682,9 @@ function openChoreForm(id) {
         if (chore.recurringDays.includes(parseInt(btn.dataset.day))) btn.classList.add('selected');
       });
     }
+    document.querySelectorAll('.tod-btn').forEach(function (btn) {
+      btn.classList.toggle('selected', btn.dataset.tod === (chore.timeOfDay || ''));
+    });
   } else {
     titleEl.textContent = 'Add Chore';
     nameEl.value = '';
@@ -723,6 +743,8 @@ async function confirmChore() {
   var category = document.getElementById('chore-category').value;
   var isRecurring = document.getElementById('chore-recurring-check').checked;
   var selectedDays = isRecurring ? getSelectedDays() : null;
+  var todBtn = document.querySelector('.tod-btn.selected');
+  var timeOfDay = todBtn ? todBtn.dataset.tod : null;
 
   if (!name) { alert('Please enter a chore name.'); return; }
   if (isRecurring && selectedDays.length === 0) { alert('Please select at least one day it repeats on.'); return; }
@@ -732,6 +754,7 @@ async function confirmChore() {
     chore.name = name;
     chore.category = category;
     chore.recurringDays = selectedDays;
+    chore.timeOfDay = timeOfDay;
   } else {
     var maxId = choresData.list.reduce(function (m, c) { return Math.max(m, c.id); }, 0);
     choresData.list.push({
@@ -740,6 +763,7 @@ async function confirmChore() {
       category: category,
       status: 'pending',
       recurringDays: selectedDays,
+      timeOfDay: timeOfDay,
       doneBy: null,
       doneAt: null,
       nextOccurrence: null,
