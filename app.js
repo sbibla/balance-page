@@ -75,6 +75,7 @@ async function handleLogin() {
   sessionStorage.setItem('loggedInUser', usernameHash);
   sessionStorage.setItem('canAdd', match.canAdd ? 'true' : 'false');
   sessionStorage.setItem('alias', match.alias || '');
+  sessionStorage.setItem('apps', JSON.stringify(match.apps || ['balance', 'chores']));
   window.location.href = 'home.html';
 }
 
@@ -882,6 +883,78 @@ function startChoresSync() {
   });
 }
 
+// ---- Manage Users (admin) ----
+
+var ALL_APPS = [
+  { id: 'balance', label: '💰 Balance' },
+  { id: 'chores',  label: '🧹 Chores'  }
+];
+
+var manageUsersData = [];
+
+async function openManageUsers() {
+  var snap = await getDocs(collection(db, 'users'));
+  manageUsersData = [];
+  snap.forEach(function (d) {
+    manageUsersData.push({ hash: d.id, alias: d.data().alias || d.id.slice(0,6), apps: d.data().apps || ['balance', 'chores'] });
+  });
+
+  var list = document.getElementById('manage-users-list');
+  list.innerHTML = '';
+  manageUsersData.forEach(function (user) {
+    var row = document.createElement('div');
+    row.className = 'manage-user-row';
+
+    var name = document.createElement('div');
+    name.className = 'manage-user-name';
+    name.textContent = user.alias;
+    row.appendChild(name);
+
+    var checks = document.createElement('div');
+    checks.className = 'manage-user-apps';
+    ALL_APPS.forEach(function (app) {
+      var lbl = document.createElement('label');
+      lbl.className = 'manage-app-label';
+      var cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.dataset.user = user.hash;
+      cb.dataset.app  = app.id;
+      cb.checked = user.apps.includes(app.id);
+      lbl.appendChild(cb);
+      lbl.append(' ' + app.label);
+      checks.appendChild(lbl);
+    });
+    row.appendChild(checks);
+    list.appendChild(row);
+  });
+
+  document.getElementById('manage-users-modal').classList.add('open');
+}
+
+function closeManageUsers() {
+  document.getElementById('manage-users-modal').classList.remove('open');
+}
+
+function handleManageUsersOverlay(event) {
+  if (event.target === document.getElementById('manage-users-modal')) closeManageUsers();
+}
+
+async function saveUserApps() {
+  var checkboxes = document.querySelectorAll('#manage-users-list input[type="checkbox"]');
+  var updates = {};
+  checkboxes.forEach(function (cb) {
+    var hash = cb.dataset.user;
+    if (!updates[hash]) updates[hash] = [];
+    if (cb.checked) updates[hash].push(cb.dataset.app);
+  });
+
+  var saves = Object.keys(updates).map(function (hash) {
+    return setDoc(doc(db, 'users', hash), { apps: updates[hash] }, { merge: true });
+  });
+  await Promise.all(saves);
+  closeManageUsers();
+}
+
 // ---- Boot ----
 
 document.addEventListener('DOMContentLoaded', async function () {
@@ -904,6 +977,28 @@ document.addEventListener('DOMContentLoaded', async function () {
     if (welcomeEl) {
       welcomeEl.textContent = alias ? 'Welcome back, ' + alias : 'Welcome back';
     }
+
+    var isAdmin = sessionStorage.getItem('canAdd') === 'true';
+    var allowedApps = isAdmin ? ['balance', 'chores'] : JSON.parse(sessionStorage.getItem('apps') || '[]');
+
+    document.querySelectorAll('.app-tile[data-app]').forEach(function (tile) {
+      var appId = tile.dataset.app;
+      if (!allowedApps.includes(appId)) {
+        tile.classList.add('tile-disabled');
+        tile.removeAttribute('href');
+        tile.removeAttribute('onclick');
+        var badge = tile.querySelector('.tile-badge') || document.createElement('div');
+        badge.className = 'tile-badge';
+        badge.textContent = 'No Access';
+        if (!tile.querySelector('.tile-badge')) tile.prepend(badge);
+      }
+    });
+
+    if (isAdmin) {
+      var adminBar = document.getElementById('admin-bar');
+      if (adminBar) adminBar.style.display = 'flex';
+    }
+
     prefetchTransactions();
   }
 
@@ -974,6 +1069,10 @@ window.closeForm                = closeForm;
 window.handleOverlayClick       = handleOverlayClick;
 window.confirmTransaction       = confirmTransaction;
 window.editComment              = editComment;
+window.openManageUsers          = openManageUsers;
+window.closeManageUsers         = closeManageUsers;
+window.handleManageUsersOverlay = handleManageUsersOverlay;
+window.saveUserApps             = saveUserApps;
 window.openChoreForm            = openChoreForm;
 window.closeChoreForm           = closeChoreForm;
 window.handleChoreOverlayClick  = handleChoreOverlayClick;

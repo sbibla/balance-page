@@ -14,15 +14,15 @@
     <button class="logout-btn" onclick="logout()">Sign Out</button>
   </header>
 
-  <main class="home-main">
+  <main class="home-main" id="home-main">
 
-    <a href="balance.html" class="app-tile" id="balance-tile" onclick="openApp(event, 'balance.html')">
+    <a href="balance.html" class="app-tile" id="balance-tile" data-app="balance" onclick="openApp(event, 'balance.html')">
       <div class="tile-icon">💰</div>
       <div class="tile-label">Balance</div>
       <div class="tile-desc">Track your spending and deposits</div>
     </a>
 
-    <a href="chores.html" class="app-tile">
+    <a href="chores.html" class="app-tile" data-app="chores">
       <div class="tile-icon">🧹</div>
       <div class="tile-label">Chores</div>
       <div class="tile-desc">Never miss a chore again</div>
@@ -58,9 +58,26 @@
 
   </main>
 
+  <!-- Admin: Manage Users button -->
+  <div class="admin-bar" id="admin-bar" style="display:none">
+    <button class="manage-users-btn" onclick="openManageUsers()">⚙ Manage Users</button>
+  </div>
+
   <footer>
     <p>Bibla Apps &mdash; <span class="version" id="app-version"></span></p>
   </footer>
+
+  <!-- Manage Users modal -->
+  <div class="modal-overlay" id="manage-users-modal" onclick="handleManageUsersOverlay(event)">
+    <div class="modal manage-users-modal">
+      <p class="modal-title">Manage User Access</p>
+      <div id="manage-users-list"></div>
+      <div class="form-actions" style="margin-top:0.5rem">
+        <button class="form-confirm" onclick="saveUserApps()">Save</button>
+        <button class="form-cancel" onclick="closeManageUsers()">Cancel</button>
+      </div>
+    </div>
+  </div>
 
   <script type="module" src="app.js"></script>
 </body>
