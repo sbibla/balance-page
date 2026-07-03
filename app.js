@@ -92,14 +92,20 @@ function logout() {
 
 // ---- Data model ----
 
-var transactions = [];
-var nextId       = 1;
-var currentAction = null;
+var transactions       = [];
+var nextId             = 1;
+var currentAction      = null;
+var currentBalanceUser = null; // { hash, alias }
+var balanceUnsubscribe = null;
+
+function balanceDocRef() {
+  return doc(db, 'balanceData', currentBalanceUser.hash);
+}
 
 // ---- Firestore persistence ----
 
 async function saveData() {
-  await setDoc(doc(db, 'appData', 'transactions'), { list: transactions });
+  await setDoc(balanceDocRef(), { list: transactions });
 }
 
 function showBalanceLoading(visible) {
@@ -110,13 +116,37 @@ function showBalanceLoading(visible) {
 }
 
 function startLiveSync() {
-  onSnapshot(doc(db, 'appData', 'transactions'), function (snap) {
+  if (balanceUnsubscribe) balanceUnsubscribe();
+  showBalanceLoading(true);
+  balanceUnsubscribe = onSnapshot(balanceDocRef(), function (snap) {
     if (snap.exists() && snap.data().list) {
       transactions = snap.data().list;
       nextId = transactions.reduce(function (max, t) { return Math.max(max, t.id + 1); }, 1);
-      showBalanceLoading(false);
-      renderAll();
+    } else {
+      transactions = [];
+      nextId = 1;
     }
+    showBalanceLoading(false);
+    renderAll();
+  });
+}
+
+function renderBalanceUserPicker(users) {
+  var picker = document.getElementById('balance-user-picker');
+  if (!picker) return;
+  picker.innerHTML = '';
+  users.forEach(function (u) {
+    var btn = document.createElement('button');
+    btn.className = 'user-pick-btn' + (u.hash === currentBalanceUser.hash ? ' active' : '');
+    btn.textContent = u.alias;
+    btn.onclick = function () {
+      currentBalanceUser = u;
+      var title = document.getElementById('balance-title');
+      if (title) title.textContent = u.alias + "'s Balance";
+      renderBalanceUserPicker(users);
+      startLiveSync();
+    };
+    picker.appendChild(btn);
   });
 }
 
@@ -285,7 +315,8 @@ function showOriginal(badge, originalText) {
 
 async function prefetchTransactions() {
   try {
-    var snap = await getDoc(doc(db, 'appData', 'transactions'));
+    var userHash = sessionStorage.getItem('loggedInUser');
+    var snap = await getDoc(doc(db, 'balanceData', userHash));
     if (snap.exists() && snap.data().list) {
       sessionStorage.setItem('prefetched_transactions', JSON.stringify(snap.data().list));
     }
@@ -500,7 +531,7 @@ function renderChores() {
 
 async function awardStreakBonus() {
   try {
-    var snap = await getDoc(doc(db, 'appData', 'transactions'));
+    var snap = await getDoc(doc(db, 'balanceData', currentChoreUser.hash));
     var list = (snap.exists() && snap.data().list) ? snap.data().list : [];
     var maxId = list.reduce(function (m, t) { return Math.max(m, t.id); }, 0);
     var today = new Date();
@@ -512,7 +543,7 @@ async function awardStreakBonus() {
       comment: '🎉 7-day chore streak bonus',
       originalComment: '🎉 7-day chore streak bonus'
     });
-    await setDoc(doc(db, 'appData', 'transactions'), { list: list });
+    await setDoc(doc(db, 'balanceData', currentChoreUser.hash), { list: list });
     showStreakToast();
   } catch (e) {}
 }
@@ -569,6 +600,14 @@ function renderStreak() {
   var label  = document.getElementById('streak-label');
   var dots   = document.getElementById('streak-dots');
   if (!banner) return;
+
+  // Hide streak when admin is viewing their own chores
+  var isAdmin = sessionStorage.getItem('canAdd') === 'true';
+  var viewingOwnTab = currentChoreUser && currentChoreUser.hash === sessionStorage.getItem('loggedInUser');
+  if (isAdmin && viewingOwnTab) {
+    banner.style.display = 'none';
+    return;
+  }
 
   var s = (choresData.streak) || { count: 0, completedDates: [] };
   banner.style.display = 'flex';
@@ -1008,7 +1047,19 @@ document.addEventListener('DOMContentLoaded', async function () {
       window.location.href = 'index.html';
       return;
     }
-    if (sessionStorage.getItem('canAdd') !== 'true') {
+
+    var myHash  = sessionStorage.getItem('loggedInUser');
+    var myAlias = sessionStorage.getItem('alias') || 'Me';
+    currentBalanceUser = { hash: myHash, alias: myAlias };
+
+    var isBalanceAdmin = sessionStorage.getItem('canAdd') === 'true';
+
+    if (isBalanceAdmin) {
+      var balUsers = await loadChoreUsers();
+      var bPickerWrap = document.getElementById('balance-user-picker-wrap');
+      if (bPickerWrap && balUsers.length > 1) bPickerWrap.style.display = 'flex';
+      renderBalanceUserPicker(balUsers);
+    } else {
       var addBtn = document.querySelector('.add-btn');
       if (addBtn) {
         addBtn.disabled = true;
@@ -1021,9 +1072,8 @@ document.addEventListener('DOMContentLoaded', async function () {
       transactions = JSON.parse(prefetched);
       nextId = transactions.reduce(function (max, t) { return Math.max(max, t.id + 1); }, 1);
       sessionStorage.removeItem('prefetched_transactions');
+      showBalanceLoading(false);
       renderAll();
-    } else {
-      showBalanceLoading(true);
     }
     startLiveSync();
   }
