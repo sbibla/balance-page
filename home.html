@@ -70,12 +70,27 @@
   <!-- Manage Users modal -->
   <div class="modal-overlay" id="manage-users-modal" onclick="handleManageUsersOverlay(event)">
     <div class="modal manage-users-modal">
-      <p class="modal-title">Manage User Access</p>
+      <p class="modal-title">Manage Users</p>
+
       <div id="manage-users-list"></div>
+
       <div class="form-actions" style="margin-top:0.5rem">
-        <button class="form-confirm" onclick="saveUserApps()">Save</button>
-        <button class="form-cancel" onclick="closeManageUsers()">Cancel</button>
+        <button class="form-confirm" onclick="saveUserApps()">Save Access</button>
+        <button class="form-cancel" onclick="closeManageUsers()">Close</button>
       </div>
+
+      <hr style="border:none;border-top:1px solid #e2e8f0;margin:0.5rem 0" />
+
+      <p class="modal-title" style="font-size:0.95rem">Create New User</p>
+      <input type="text"     id="new-user-username" placeholder="Username (e.g. roy)" autocomplete="off" />
+      <input type="text"     id="new-user-alias"    placeholder="Display name (e.g. Roy)" autocomplete="off" />
+      <input type="number"   id="new-user-password" placeholder="6-digit PIN" maxlength="6" inputmode="numeric" />
+      <label class="manage-app-label" style="padding:0 0.25rem">
+        <input type="checkbox" id="new-user-canadd" />
+        Admin (can add funds &amp; manage users)
+      </label>
+      <p id="create-user-error" style="color:#e53e3e;font-size:0.85rem;display:none"></p>
+      <button class="form-confirm" onclick="createUser()" style="width:100%">Create User</button>
     </div>
   </div>
 

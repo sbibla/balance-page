@@ -978,6 +978,41 @@ function handleManageUsersOverlay(event) {
   if (event.target === document.getElementById('manage-users-modal')) closeManageUsers();
 }
 
+async function createUser() {
+  var username = document.getElementById('new-user-username').value.trim().toLowerCase();
+  var alias    = document.getElementById('new-user-alias').value.trim();
+  var password = document.getElementById('new-user-password').value.trim();
+  var canAdd   = document.getElementById('new-user-canadd').checked;
+  var errEl    = document.getElementById('create-user-error');
+
+  errEl.style.display = 'none';
+
+  if (!username) { errEl.textContent = 'Username is required.'; errEl.style.display = 'block'; return; }
+  if (!alias)    { errEl.textContent = 'Display name is required.'; errEl.style.display = 'block'; return; }
+  if (!/^\d{6}$/.test(password)) { errEl.textContent = 'PIN must be exactly 6 digits.'; errEl.style.display = 'block'; return; }
+
+  var usernameHash = await sha256(username);
+  var passwordHash = await sha256(password);
+
+  var existing = await getDoc(doc(db, 'users', usernameHash));
+  if (existing.exists()) { errEl.textContent = 'A user with that username already exists.'; errEl.style.display = 'block'; return; }
+
+  await setDoc(doc(db, 'users', usernameHash), {
+    passwordHash: passwordHash,
+    alias: alias,
+    canAdd: canAdd,
+    apps: ['balance', 'chores']
+  });
+
+  document.getElementById('new-user-username').value = '';
+  document.getElementById('new-user-alias').value    = '';
+  document.getElementById('new-user-password').value = '';
+  document.getElementById('new-user-canadd').checked = false;
+
+  // Refresh the user list
+  await openManageUsers();
+}
+
 async function saveUserApps() {
   var checkboxes = document.querySelectorAll('#manage-users-list input[type="checkbox"]');
   var updates = {};
@@ -1119,6 +1154,7 @@ window.closeForm                = closeForm;
 window.handleOverlayClick       = handleOverlayClick;
 window.confirmTransaction       = confirmTransaction;
 window.editComment              = editComment;
+window.createUser               = createUser;
 window.openManageUsers          = openManageUsers;
 window.closeManageUsers         = closeManageUsers;
 window.handleManageUsersOverlay = handleManageUsersOverlay;
