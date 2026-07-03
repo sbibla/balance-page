@@ -958,7 +958,7 @@ async function saveUserApps() {
 // ---- Boot ----
 
 document.addEventListener('DOMContentLoaded', async function () {
-  var allowedHosts = ['biblix.io', 'www.biblix.io'];
+  var allowedHosts = ['biblix.io', 'www.biblix.io', 'biblix.pages.dev'];
   if (!allowedHosts.includes(window.location.hostname)) {
     window.location.replace('https://biblix.io');
     return;
