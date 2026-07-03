@@ -997,12 +997,18 @@ async function createUser() {
   var existing = await getDoc(doc(db, 'users', usernameHash));
   if (existing.exists()) { errEl.textContent = 'A user with that username already exists.'; errEl.style.display = 'block'; return; }
 
-  await setDoc(doc(db, 'users', usernameHash), {
-    passwordHash: passwordHash,
-    alias: alias,
-    canAdd: canAdd,
-    apps: ['balance', 'chores']
-  });
+  try {
+    await setDoc(doc(db, 'users', usernameHash), {
+      passwordHash: passwordHash,
+      alias: alias,
+      canAdd: canAdd,
+      apps: ['balance', 'chores']
+    });
+  } catch (e) {
+    errEl.textContent = 'Failed to create user: ' + e.message;
+    errEl.style.display = 'block';
+    return;
+  }
 
   document.getElementById('new-user-username').value = '';
   document.getElementById('new-user-alias').value    = '';
