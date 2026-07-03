@@ -877,9 +877,8 @@ function startChoresSync() {
     if (firstLoad) {
       firstLoad = false;
       await resetOverdueRecurring();
-    } else {
-      renderChores();
     }
+    renderChores();
   });
 }
 
