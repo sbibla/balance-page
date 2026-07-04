@@ -354,11 +354,14 @@ async function loadVersion() {
 
 // ---- Chores ----
 
-var choresData        = { list: [] };
-var sharedCategories  = ['Cleaning', 'Kitchen', 'Laundry', 'Errands', 'Pets'];
-var editingChoreId    = null;
-var currentChoreUser  = null; // { hash, alias } of the user whose chores are shown
-var choresUnsubscribe = null;
+var choresData           = { list: [] };
+var sharedChoresData     = { list: [] };
+var sharedCategories     = ['Cleaning', 'Kitchen', 'Laundry', 'Errands', 'Pets'];
+var editingChoreId       = null;
+var editingChoreIsShared = false;
+var currentChoreUser     = null; // { hash, alias } of the user whose chores are shown
+var choresUnsubscribe    = null;
+var sharedChoresUnsubscribe = null;
 
 function choresDocRef() {
   return doc(db, 'choresData', currentChoreUser.hash);
@@ -366,6 +369,10 @@ function choresDocRef() {
 
 async function saveChores() {
   await setDoc(choresDocRef(), choresData);
+}
+
+async function saveSharedChores() {
+  await setDoc(doc(db, 'choresData', 'shared'), sharedChoresData);
 }
 
 async function saveCategories() {
@@ -404,6 +411,137 @@ function todayISO() {
   return new Date().toISOString().split('T')[0];
 }
 
+function buildChoreListItem(chore, isDone, onToggle, onUndo, onEdit, onDelete, isAdmin) {
+  var li = document.createElement('li');
+  li.className = 'chore-item' + (isDone ? ' done' : '');
+
+  var checkbox = document.createElement('div');
+  checkbox.className = 'chore-checkbox' + (isDone ? ' checked' : '');
+  checkbox.innerHTML = isDone ? '✓' : '';
+  checkbox.onclick = onToggle;
+
+  var body = document.createElement('div');
+  body.className = 'chore-body';
+
+  var nameEl = document.createElement('div');
+  nameEl.className = 'chore-name';
+  nameEl.textContent = chore.name;
+  if (chore.timeOfDay) {
+    var todIcons = { morning: '🌅', afternoon: '☀️', evening: '🌙' };
+    var tag = document.createElement('span');
+    tag.className = 'tod-tag tod-' + chore.timeOfDay;
+    tag.textContent = todIcons[chore.timeOfDay] + ' ' + chore.timeOfDay.charAt(0).toUpperCase() + chore.timeOfDay.slice(1);
+    nameEl.appendChild(tag);
+  }
+
+  var metaEl = document.createElement('div');
+  metaEl.className = 'chore-meta';
+  var hasRecurring = Array.isArray(chore.recurringDays) && chore.recurringDays.length > 0;
+  if (isDone) {
+    var metaParts = [];
+    if (chore.doneBy) metaParts.push('Done by ' + chore.doneBy + ' · ' + formatDateTime(chore.doneAt));
+    if (hasRecurring && chore.nextOccurrence) metaParts.push('Next: ' + formatDate(chore.nextOccurrence));
+    metaEl.textContent = metaParts.join(' · ');
+  } else if (hasRecurring) {
+    metaEl.textContent = 'Repeats ' + chore.recurringDays.sort(function(a,b){return a-b;}).map(function(d){ return DAY_NAMES[d]; }).join(', ');
+  }
+
+  body.appendChild(nameEl);
+  body.appendChild(metaEl);
+
+  var actions = document.createElement('div');
+  actions.className = 'chore-actions';
+
+  if (isDone && onUndo) {
+    var undoBtn = document.createElement('button');
+    undoBtn.className = 'chore-icon-btn undo';
+    undoBtn.title = 'Undo';
+    undoBtn.textContent = '↩';
+    undoBtn.onclick = onUndo;
+    actions.appendChild(undoBtn);
+  }
+
+  var histBtn = document.createElement('button');
+  histBtn.className = 'chore-icon-btn';
+  histBtn.title = 'History';
+  histBtn.textContent = '📋';
+  histBtn.onclick = function () { showChoreHistory(chore); };
+  actions.appendChild(histBtn);
+
+  if (isAdmin && onEdit) {
+    var editBtn = document.createElement('button');
+    editBtn.className = 'chore-icon-btn';
+    editBtn.title = 'Edit';
+    editBtn.textContent = '✏️';
+    editBtn.onclick = onEdit;
+    actions.appendChild(editBtn);
+  }
+
+  if (isAdmin && onDelete) {
+    var delBtn = document.createElement('button');
+    delBtn.className = 'chore-icon-btn delete';
+    delBtn.title = 'Delete';
+    delBtn.textContent = '🗑';
+    delBtn.onclick = onDelete;
+    actions.appendChild(delBtn);
+  }
+
+  li.appendChild(checkbox);
+  li.appendChild(body);
+  li.appendChild(actions);
+  return li;
+}
+
+function renderSharedChores(container) {
+  if (!currentChoreUser) return;
+  var myHash = currentChoreUser.hash;
+  var isAdmin = sessionStorage.getItem('canAdd') === 'true';
+  var loggedInHash = sessionStorage.getItem('loggedInUser');
+
+  var visible = sharedChoresData.list.filter(function (c) {
+    return Array.isArray(c.sharedWith) && c.sharedWith.includes(myHash);
+  });
+  if (visible.length === 0) return;
+
+  var section = document.createElement('div');
+  section.className = 'chore-category-section shared-chores-section';
+
+  var heading = document.createElement('p');
+  heading.className = 'chore-category-heading';
+  heading.textContent = '🤝 Shared';
+  section.appendChild(heading);
+
+  var ul = document.createElement('ul');
+  ul.className = 'chore-list';
+
+  visible.forEach(function (chore) {
+    var isDone = chore.status === 'done';
+    var canUndo = isDone && (chore.doneByHash === loggedInHash);
+    var canToggle = !isDone;
+
+    var li = buildChoreListItem(
+      chore,
+      isDone,
+      canToggle ? function () { toggleSharedChore(chore.id); } : null,
+      canUndo   ? function () { undoSharedChore(chore.id); }   : null,
+      isAdmin   ? function () { openChoreForm(chore.id, true); } : null,
+      isAdmin   ? function () { deleteSharedChore(chore.id); }   : null,
+      isAdmin
+    );
+
+    // Make the checkbox non-clickable if already done by someone else
+    if (isDone) {
+      var cb = li.querySelector('.chore-checkbox');
+      if (cb) cb.onclick = null;
+    }
+
+    ul.appendChild(li);
+  });
+
+  section.appendChild(ul);
+  container.appendChild(section);
+}
+
 function renderChores() {
   var container = document.getElementById('chores-container');
   if (!container) return;
@@ -414,7 +552,12 @@ function renderChores() {
   var toolbar = document.getElementById('chores-toolbar');
   if (toolbar) toolbar.style.display = isAdmin ? 'flex' : 'none';
 
-  if (choresData.list.length === 0) {
+  container.innerHTML = '';
+
+  // Render shared chores at the top
+  renderSharedChores(container);
+
+  if (choresData.list.length === 0 && container.children.length === 0) {
     container.innerHTML = '<p class="chores-loading">No chores yet' + (isAdmin ? ' — use &quot;+ Add Chore&quot; to get started.' : '.') + '</p>';
     return;
   }
@@ -426,7 +569,6 @@ function renderChores() {
     grouped[c.category].push(c);
   });
 
-  container.innerHTML = '';
   Object.keys(grouped).forEach(function (cat) {
     var chores = grouped[cat];
     if (chores.length === 0) return;
@@ -444,83 +586,15 @@ function renderChores() {
 
     chores.forEach(function (chore) {
       var isDone = chore.status === 'done';
-      var li = document.createElement('li');
-      li.className = 'chore-item' + (isDone ? ' done' : '');
-
-      var checkbox = document.createElement('div');
-      checkbox.className = 'chore-checkbox' + (isDone ? ' checked' : '');
-      checkbox.innerHTML = isDone ? '✓' : '';
-      checkbox.onclick = function () { toggleChore(chore.id); };
-
-      var body = document.createElement('div');
-      body.className = 'chore-body';
-
-      var nameEl = document.createElement('div');
-      nameEl.className = 'chore-name';
-      nameEl.textContent = chore.name;
-      if (chore.timeOfDay) {
-        var todIcons = { morning: '🌅', afternoon: '☀️', evening: '🌙' };
-        var tag = document.createElement('span');
-        tag.className = 'tod-tag tod-' + chore.timeOfDay;
-        tag.textContent = todIcons[chore.timeOfDay] + ' ' + chore.timeOfDay.charAt(0).toUpperCase() + chore.timeOfDay.slice(1);
-        nameEl.appendChild(tag);
-      }
-
-      var metaEl = document.createElement('div');
-      metaEl.className = 'chore-meta';
-      var hasRecurring = Array.isArray(chore.recurringDays) && chore.recurringDays.length > 0;
-      if (isDone) {
-        var metaParts = [];
-        if (chore.doneBy) metaParts.push('Done by ' + chore.doneBy + ' · ' + formatDateTime(chore.doneAt));
-        if (hasRecurring && chore.nextOccurrence) {
-          metaParts.push('Next: ' + formatDate(chore.nextOccurrence));
-        }
-        metaEl.textContent = metaParts.join(' · ');
-      } else if (hasRecurring) {
-        metaEl.textContent = 'Repeats ' + chore.recurringDays.sort(function(a,b){return a-b;}).map(function(d){ return DAY_NAMES[d]; }).join(', ');
-      }
-
-      body.appendChild(nameEl);
-      body.appendChild(metaEl);
-
-      var actions = document.createElement('div');
-      actions.className = 'chore-actions';
-
-      if (isDone) {
-        var undoBtn = document.createElement('button');
-        undoBtn.className = 'chore-icon-btn undo';
-        undoBtn.title = 'Undo';
-        undoBtn.textContent = '↩';
-        undoBtn.onclick = function () { undoChore(chore.id); };
-        actions.appendChild(undoBtn);
-      }
-
-      var histBtn = document.createElement('button');
-      histBtn.className = 'chore-icon-btn';
-      histBtn.title = 'History';
-      histBtn.textContent = '📋';
-      histBtn.onclick = function () { showChoreHistory(chore); };
-      actions.appendChild(histBtn);
-
-      if (isAdmin) {
-        var editBtn = document.createElement('button');
-        editBtn.className = 'chore-icon-btn';
-        editBtn.title = 'Edit';
-        editBtn.textContent = '✏️';
-        editBtn.onclick = function () { openChoreForm(chore.id); };
-        actions.appendChild(editBtn);
-
-        var delBtn = document.createElement('button');
-        delBtn.className = 'chore-icon-btn delete';
-        delBtn.title = 'Delete';
-        delBtn.textContent = '🗑';
-        delBtn.onclick = function () { deleteChore(chore.id); };
-        actions.appendChild(delBtn);
-      }
-
-      li.appendChild(checkbox);
-      li.appendChild(body);
-      li.appendChild(actions);
+      var li = buildChoreListItem(
+        chore,
+        isDone,
+        function () { toggleChore(chore.id); },
+        function () { undoChore(chore.id); },
+        function () { openChoreForm(chore.id, false); },
+        function () { deleteChore(chore.id); },
+        isAdmin
+      );
       ul.appendChild(li);
     });
 
@@ -676,14 +750,57 @@ async function deleteChore(id) {
   await saveChores();
 }
 
-function openChoreForm(id) {
+async function toggleSharedChore(id) {
+  var chore = sharedChoresData.list.find(function (c) { return c.id === id; });
+  if (!chore || chore.status === 'done') return;
+  var alias = sessionStorage.getItem('alias') || 'Someone';
+  var loggedInHash = sessionStorage.getItem('loggedInUser');
+  var today = todayISO();
+  chore.status = 'done';
+  chore.doneBy = alias;
+  chore.doneByHash = loggedInHash;
+  chore.doneAt = nowISO();
+  if (Array.isArray(chore.recurringDays) && chore.recurringDays.length > 0) {
+    chore.nextOccurrence = nextOccurrenceFromDays(chore.recurringDays);
+  }
+  if (!chore.history) chore.history = [];
+  chore.history.unshift({ doneBy: alias, doneAt: nowISO() });
+  updateStreak(today);
+  await saveSharedChores();
+}
+
+async function undoSharedChore(id) {
+  var chore = sharedChoresData.list.find(function (c) { return c.id === id; });
+  if (!chore) return;
+  var loggedInHash = sessionStorage.getItem('loggedInUser');
+  if (chore.doneByHash !== loggedInHash) return;
+  chore.status = 'pending';
+  chore.doneBy = null;
+  chore.doneByHash = null;
+  chore.doneAt = null;
+  chore.nextOccurrence = null;
+  if (chore.history && chore.history.length > 0) chore.history.shift();
+  await saveSharedChores();
+}
+
+async function deleteSharedChore(id) {
+  if (!confirm('Delete this shared chore?')) return;
+  sharedChoresData.list = sharedChoresData.list.filter(function (c) { return c.id !== id; });
+  await saveSharedChores();
+}
+
+function openChoreForm(id, isShared) {
   editingChoreId = id || null;
+  editingChoreIsShared = !!isShared;
+
   var modal = document.getElementById('chore-modal');
   var titleEl = document.getElementById('chore-modal-title');
   var nameEl = document.getElementById('chore-name');
   var catEl = document.getElementById('chore-category');
   var recurCheck = document.getElementById('chore-recurring-check');
   var picker = document.getElementById('day-picker');
+  var sharedWrap = document.getElementById('shared-chore-wrap');
+  var sharedCheck = document.getElementById('chore-shared-check');
 
   catEl.innerHTML = '';
   sharedCategories.forEach(function (cat) {
@@ -709,8 +826,18 @@ function openChoreForm(id) {
     btn.onclick = function () { btn.classList.toggle('selected'); };
   });
 
+  var adminMode = sessionStorage.getItem('canAdd') === 'true';
+  if (sharedWrap) sharedWrap.style.display = adminMode ? 'block' : 'none';
+
+  // Populate shared users picker
+  if (adminMode && window._choreUsers) {
+    populateSharedUsersPicker([]);
+  }
+
   if (id) {
-    var chore = choresData.list.find(function (c) { return c.id === id; });
+    var chore = isShared
+      ? sharedChoresData.list.find(function (c) { return c.id === id; })
+      : choresData.list.find(function (c) { return c.id === id; });
     titleEl.textContent = 'Edit Chore';
     nameEl.value = chore.name;
     catEl.value = chore.category;
@@ -725,16 +852,62 @@ function openChoreForm(id) {
     document.querySelectorAll('.tod-btn').forEach(function (btn) {
       btn.classList.toggle('selected', btn.dataset.tod === (chore.timeOfDay || ''));
     });
+    if (sharedCheck) {
+      sharedCheck.checked = isShared;
+      var sharedUsersPicker = document.getElementById('shared-users-picker');
+      if (sharedUsersPicker) sharedUsersPicker.style.display = isShared ? 'flex' : 'none';
+      if (isShared && adminMode && window._choreUsers) {
+        populateSharedUsersPicker(chore.sharedWith || []);
+      }
+    }
   } else {
     titleEl.textContent = 'Add Chore';
     nameEl.value = '';
     catEl.selectedIndex = 0;
     recurCheck.checked = false;
     picker.style.display = 'none';
+    if (sharedCheck) {
+      sharedCheck.checked = false;
+      var sharedUsersPicker = document.getElementById('shared-users-picker');
+      if (sharedUsersPicker) sharedUsersPicker.style.display = 'none';
+    }
   }
 
   modal.classList.add('open');
   setTimeout(function () { nameEl.focus(); }, 50);
+}
+
+function populateSharedUsersPicker(selectedHashes) {
+  var pickerEl = document.getElementById('shared-users-picker');
+  if (!pickerEl || !window._choreUsers) return;
+  pickerEl.innerHTML = '';
+  window._choreUsers.forEach(function (u) {
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'shared-user-btn' + (selectedHashes.includes(u.hash) ? ' selected' : '');
+    btn.textContent = u.alias;
+    btn.dataset.hash = u.hash;
+    btn.onclick = function () { btn.classList.toggle('selected'); };
+    pickerEl.appendChild(btn);
+  });
+}
+
+function getSelectedSharedUsers() {
+  var selected = [];
+  document.querySelectorAll('#shared-users-picker .shared-user-btn.selected').forEach(function (btn) {
+    selected.push(btn.dataset.hash);
+  });
+  return selected;
+}
+
+function toggleSharedSection() {
+  var check = document.getElementById('chore-shared-check');
+  var pickerEl = document.getElementById('shared-users-picker');
+  if (!pickerEl) return;
+  pickerEl.style.display = check.checked ? 'flex' : 'none';
+  if (check.checked && window._choreUsers) {
+    populateSharedUsersPicker([]);
+  }
 }
 
 function closeChoreForm() {
@@ -785,33 +958,66 @@ async function confirmChore() {
   var selectedDays = isRecurring ? getSelectedDays() : null;
   var todBtn = document.querySelector('.tod-btn.selected');
   var timeOfDay = todBtn ? todBtn.dataset.tod : null;
+  var sharedCheck = document.getElementById('chore-shared-check');
+  var isSharedChore = sharedCheck && sharedCheck.checked;
 
   if (!name) { alert('Please enter a chore name.'); return; }
   if (isRecurring && selectedDays.length === 0) { alert('Please select at least one day it repeats on.'); return; }
 
-  if (editingChoreId) {
-    var chore = choresData.list.find(function (c) { return c.id === editingChoreId; });
-    chore.name = name;
-    chore.category = category;
-    chore.recurringDays = selectedDays;
-    chore.timeOfDay = timeOfDay;
+  if (isSharedChore) {
+    var sharedWith = getSelectedSharedUsers();
+    if (sharedWith.length === 0) { alert('Please select at least one user to share this chore with.'); return; }
+
+    if (editingChoreId && editingChoreIsShared) {
+      var chore = sharedChoresData.list.find(function (c) { return c.id === editingChoreId; });
+      chore.name = name;
+      chore.category = category;
+      chore.recurringDays = selectedDays;
+      chore.timeOfDay = timeOfDay;
+      chore.sharedWith = sharedWith;
+    } else {
+      var maxId = sharedChoresData.list.reduce(function (m, c) { return Math.max(m, c.id); }, 0);
+      sharedChoresData.list.push({
+        id: maxId + 1,
+        name: name,
+        category: category,
+        status: 'pending',
+        recurringDays: selectedDays,
+        timeOfDay: timeOfDay,
+        sharedWith: sharedWith,
+        doneBy: null,
+        doneByHash: null,
+        doneAt: null,
+        nextOccurrence: null,
+        history: []
+      });
+    }
+    await saveSharedChores();
   } else {
-    var maxId = choresData.list.reduce(function (m, c) { return Math.max(m, c.id); }, 0);
-    choresData.list.push({
-      id: maxId + 1,
-      name: name,
-      category: category,
-      status: 'pending',
-      recurringDays: selectedDays,
-      timeOfDay: timeOfDay,
-      doneBy: null,
-      doneAt: null,
-      nextOccurrence: null,
-      history: []
-    });
+    if (editingChoreId && !editingChoreIsShared) {
+      var chore = choresData.list.find(function (c) { return c.id === editingChoreId; });
+      chore.name = name;
+      chore.category = category;
+      chore.recurringDays = selectedDays;
+      chore.timeOfDay = timeOfDay;
+    } else {
+      var maxId = choresData.list.reduce(function (m, c) { return Math.max(m, c.id); }, 0);
+      choresData.list.push({
+        id: maxId + 1,
+        name: name,
+        category: category,
+        status: 'pending',
+        recurringDays: selectedDays,
+        timeOfDay: timeOfDay,
+        doneBy: null,
+        doneAt: null,
+        nextOccurrence: null,
+        history: []
+      });
+    }
+    await saveChores();
   }
 
-  await saveChores();
   closeChoreForm();
 }
 
@@ -876,6 +1082,35 @@ async function resetOverdueRecurring() {
   if (changed) await saveChores();
 }
 
+async function resetOverdueSharedChores() {
+  var today = todayISO();
+  var changed = false;
+  sharedChoresData.list.forEach(function (chore) {
+    if (chore.status === 'done') {
+      var isRecurring = Array.isArray(chore.recurringDays) && chore.recurringDays.length > 0;
+      if (isRecurring && chore.nextOccurrence && chore.nextOccurrence <= today) {
+        chore.status = 'pending';
+        chore.doneBy = null;
+        chore.doneByHash = null;
+        chore.doneAt = null;
+        chore.nextOccurrence = null;
+        changed = true;
+      } else if (!isRecurring && chore.doneAt) {
+        // Non-recurring shared chores reset at midnight each day
+        var doneDate = chore.doneAt.split('T')[0];
+        if (doneDate < today) {
+          chore.status = 'pending';
+          chore.doneBy = null;
+          chore.doneByHash = null;
+          chore.doneAt = null;
+          changed = true;
+        }
+      }
+    }
+  });
+  if (changed) await saveSharedChores();
+}
+
 async function loadChoreUsers() {
   var snap = await getDocs(collection(db, 'users'));
   var users = [];
@@ -917,6 +1152,24 @@ function startChoresSync() {
     if (firstLoad) {
       firstLoad = false;
       await resetOverdueRecurring();
+    }
+    renderChores();
+  });
+}
+
+function startSharedChoresSync() {
+  if (sharedChoresUnsubscribe) sharedChoresUnsubscribe();
+  var firstLoad = true;
+  sharedChoresUnsubscribe = onSnapshot(doc(db, 'choresData', 'shared'), async function (snap) {
+    if (snap.exists()) {
+      sharedChoresData = snap.data();
+      if (!sharedChoresData.list) sharedChoresData.list = [];
+    } else {
+      sharedChoresData = { list: [] };
+    }
+    if (firstLoad) {
+      firstLoad = false;
+      await resetOverdueSharedChores();
     }
     renderChores();
   });
@@ -1139,6 +1392,7 @@ document.addEventListener('DOMContentLoaded', async function () {
       window._choreUsers = allUsers;
     }
     startChoresSync();
+    startSharedChoresSync();
   }
 
   // Login page — wire up Enter key
@@ -1175,3 +1429,4 @@ window.closeCategoryForm        = closeCategoryForm;
 window.handleCategoryOverlayClick = handleCategoryOverlayClick;
 window.confirmCategory          = confirmCategory;
 window.closeHistoryModal        = closeHistoryModal;
+window.toggleSharedSection      = toggleSharedSection;

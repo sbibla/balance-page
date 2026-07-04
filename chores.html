@@ -69,6 +69,13 @@
         <button type="button" class="day-btn" data-day="5">Fri</button>
         <button type="button" class="day-btn" data-day="6">Sat</button>
       </div>
+      <div id="shared-chore-wrap" style="display:none">
+        <label class="modal-checkbox-label">
+          <input type="checkbox" id="chore-shared-check" onchange="toggleSharedSection()" />
+          Shared chore
+        </label>
+        <div id="shared-users-picker" class="shared-users-picker" style="display:none"></div>
+      </div>
       <div class="form-actions">
         <button class="form-confirm" id="chore-confirm-btn" onclick="confirmChore()">Save</button>
         <button class="form-cancel" onclick="closeChoreForm()">Cancel</button>

@@ -908,6 +908,39 @@ header { position: relative; }
   box-shadow: 0 2px 8px rgba(0,0,0,0.07);
 }
 
+.shared-chores-section {
+  border: 2px solid #bee3f8;
+  background: #ebf8ff;
+}
+
+.shared-users-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+  padding: 0.5rem 0;
+}
+
+.shared-user-btn {
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  border: 2px solid #90cdf4;
+  background: white;
+  color: #2b6cb0;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.shared-user-btn.selected {
+  background: #bee3f8;
+  border-color: #3182ce;
+  color: #1a365d;
+  font-weight: 600;
+}
+
+.shared-user-btn:hover { border-color: #3182ce; }
+
 .chore-category-heading {
   font-size: 0.75rem;
   font-weight: 700;
