@@ -639,19 +639,38 @@ function showStreakToast() {
   }, 4000);
 }
 
-function updateStreak(today) {
+function checkAndUpdateStreak(today) {
+  if (!currentChoreUser) return;
   if (!choresData.streak) choresData.streak = { count: 0, completedDates: [], bonusesAwarded: 0 };
   var s = choresData.streak;
   if (!s.bonusesAwarded) s.bonusesAwarded = 0;
 
-  var isNewDay = !s.completedDates.includes(today);
+  // Check if all personal chores are done
+  var totalTasks = choresData.list.length;
+  var allPersonalDone = choresData.list.every(function (c) { return c.status === 'done'; });
 
-  if (isNewDay) {
-    s.completedDates.push(today);
-    s.completedDates = s.completedDates.slice(-60);
+  // Check if all shared chores visible to this user are done
+  var myHash = currentChoreUser.hash;
+  var visibleShared = sharedChoresData.list.filter(function (c) {
+    return Array.isArray(c.sharedWith) && c.sharedWith.includes(myHash);
+  });
+  totalTasks += visibleShared.length;
+  var allSharedDone = visibleShared.every(function (c) { return c.status === 'done'; });
+
+  if (totalTasks === 0) return;
+
+  var allDone = allPersonalDone && allSharedDone;
+
+  if (allDone) {
+    if (!s.completedDates.includes(today)) {
+      s.completedDates.push(today);
+      s.completedDates = s.completedDates.slice(-60);
+    }
+  } else {
+    s.completedDates = s.completedDates.filter(function (d) { return d !== today; });
   }
 
-  // recalculate streak count
+  // Recalculate streak count
   var count = 0;
   var d = new Date(today);
   while (true) {
@@ -661,7 +680,7 @@ function updateStreak(today) {
   }
   s.count = count;
 
-  // award $2 bonus for every new 7-day milestone
+  // Award $2 bonus for every new 7-day milestone
   var milestones = Math.floor(count / 7);
   if (milestones > s.bonusesAwarded) {
     s.bonusesAwarded = milestones;
@@ -729,7 +748,7 @@ async function toggleChore(id) {
   }
   if (!chore.history) chore.history = [];
   chore.history.unshift({ doneBy: alias, doneAt: nowISO() });
-  updateStreak(today);
+  checkAndUpdateStreak(today);
   await saveChores();
 }
 
@@ -741,6 +760,7 @@ async function undoChore(id) {
   chore.doneAt = null;
   chore.nextOccurrence = null;
   if (chore.history && chore.history.length > 0) chore.history.shift();
+  checkAndUpdateStreak(todayISO());
   await saveChores();
 }
 
@@ -765,8 +785,8 @@ async function toggleSharedChore(id) {
   }
   if (!chore.history) chore.history = [];
   chore.history.unshift({ doneBy: alias, doneAt: nowISO() });
-  updateStreak(today);
-  await saveSharedChores();
+  checkAndUpdateStreak(today);
+  await Promise.all([saveSharedChores(), saveChores()]);
 }
 
 async function undoSharedChore(id) {
@@ -780,7 +800,8 @@ async function undoSharedChore(id) {
   chore.doneAt = null;
   chore.nextOccurrence = null;
   if (chore.history && chore.history.length > 0) chore.history.shift();
-  await saveSharedChores();
+  checkAndUpdateStreak(todayISO());
+  await Promise.all([saveSharedChores(), saveChores()]);
 }
 
 async function deleteSharedChore(id) {
