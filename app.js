@@ -639,27 +639,34 @@ function showStreakToast() {
   }, 4000);
 }
 
+function isDueToday(chore, todayDow) {
+  if (Array.isArray(chore.recurringDays) && chore.recurringDays.length > 0) {
+    return chore.recurringDays.includes(todayDow);
+  }
+  return true; // non-recurring chores are always due until done
+}
+
 function checkAndUpdateStreak(today) {
   if (!currentChoreUser) return;
   if (!choresData.streak) choresData.streak = { count: 0, completedDates: [], bonusesAwarded: 0 };
   var s = choresData.streak;
   if (!s.bonusesAwarded) s.bonusesAwarded = 0;
 
-  // Check if all personal chores are done
-  var totalTasks = choresData.list.length;
-  var allPersonalDone = choresData.list.every(function (c) { return c.status === 'done'; });
-
-  // Check if all shared chores visible to this user are done
+  var todayDow = new Date(today).getDay();
   var myHash = currentChoreUser.hash;
+
+  // Only consider tasks scheduled for today
+  var personalDueToday = choresData.list.filter(function (c) { return isDueToday(c, todayDow); });
   var visibleShared = sharedChoresData.list.filter(function (c) {
     return Array.isArray(c.sharedWith) && c.sharedWith.includes(myHash);
   });
-  totalTasks += visibleShared.length;
-  var allSharedDone = visibleShared.every(function (c) { return c.status === 'done'; });
+  var sharedDueToday = visibleShared.filter(function (c) { return isDueToday(c, todayDow); });
 
-  if (totalTasks === 0) return;
+  var totalDueToday = personalDueToday.length + sharedDueToday.length;
+  if (totalDueToday === 0) return; // no tasks today — don't touch streak
 
-  var allDone = allPersonalDone && allSharedDone;
+  var allDone = personalDueToday.every(function (c) { return c.status === 'done'; }) &&
+                sharedDueToday.every(function (c) { return c.status === 'done'; });
 
   if (allDone) {
     if (!s.completedDates.includes(today)) {
