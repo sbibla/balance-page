@@ -837,6 +837,16 @@ header { position: relative; }
   border-color: #38a169;
 }
 
+.streak-dot.admin-dot {
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+}
+
+.streak-dot.admin-dot:hover {
+  opacity: 0.75;
+  transform: scale(1.15);
+}
+
 .streak-toast {
   position: fixed;
   bottom: 1.5rem;
