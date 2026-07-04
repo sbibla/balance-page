@@ -831,6 +831,35 @@ header { position: relative; }
   color: white;
 }
 
+.streak-admin-controls {
+  display: flex;
+  gap: 0.3rem;
+  margin-left: auto;
+}
+
+.streak-adj-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 2px solid #cbd5e0;
+  background: white;
+  color: #4a5568;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.streak-adj-btn:hover {
+  border-color: #4a6fa5;
+  background: #ebf4ff;
+  color: #4a6fa5;
+}
+
 .streak-toast {
   position: fixed;
   bottom: 1.5rem;

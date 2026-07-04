@@ -715,9 +715,27 @@ function renderStreak() {
   var count = s.count || 0;
   label.textContent = count === 1 ? '1-day streak!' : count + '-day streak' + (count > 1 ? '!' : '');
 
+  // Admin +/- controls
+  var existingControls = banner.querySelector('.streak-admin-controls');
+  if (existingControls) existingControls.remove();
+  if (isAdmin) {
+    var controls = document.createElement('div');
+    controls.className = 'streak-admin-controls';
+    var minusBtn = document.createElement('button');
+    minusBtn.className = 'streak-adj-btn';
+    minusBtn.textContent = '−';
+    minusBtn.onclick = function () { adminAdjustStreak(-1); };
+    var plusBtn = document.createElement('button');
+    plusBtn.className = 'streak-adj-btn';
+    plusBtn.textContent = '+';
+    plusBtn.onclick = function () { adminAdjustStreak(1); };
+    controls.appendChild(minusBtn);
+    controls.appendChild(plusBtn);
+    banner.appendChild(controls);
+  }
+
   // Build numbered dots 1–7
   dots.innerHTML = '';
-  var count = s.count || 0;
   for (var i = 1; i <= 7; i++) {
     var filled = i <= count;
     var dot = document.createElement('div');
@@ -725,6 +743,24 @@ function renderStreak() {
     dot.textContent = i;
     dots.appendChild(dot);
   }
+}
+
+async function adminAdjustStreak(delta) {
+  if (!choresData.streak) choresData.streak = { count: 0, completedDates: [], bonusesAwarded: 0 };
+  var s = choresData.streak;
+  s.count = Math.max(0, (s.count || 0) + delta);
+
+  // Sync completedDates to match the new count (keep most recent N days)
+  var today = todayISO();
+  var dates = [];
+  for (var i = 0; i < s.count; i++) {
+    var d = new Date(today);
+    d.setDate(d.getDate() - i);
+    dates.push(d.toISOString().split('T')[0]);
+  }
+  s.completedDates = dates;
+
+  await saveChores();
 }
 
 async function adminToggleStreakDay(iso) {
@@ -1470,3 +1506,4 @@ window.confirmCategory          = confirmCategory;
 window.closeHistoryModal        = closeHistoryModal;
 window.toggleSharedSection      = toggleSharedSection;
 window.adminToggleStreakDay     = adminToggleStreakDay;
+window.adminAdjustStreak       = adminAdjustStreak;
