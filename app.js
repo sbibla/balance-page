@@ -646,16 +646,20 @@ function isDueToday(chore, todayDow) {
   return true; // non-recurring chores are always due until done
 }
 
-function checkAndUpdateStreak(today) {
+// Called from onSnapshot handlers after choresData is refreshed from Firestore.
+// Only saves if the streak value actually changed, preventing infinite loops.
+async function recalculateStreakIfNeeded() {
   if (!currentChoreUser) return;
+
+  var today = todayISO();
+  var todayDow = new Date().getDay(); // local day of week — avoids UTC parsing issues
+  var myHash = currentChoreUser.hash;
+
   if (!choresData.streak) choresData.streak = { count: 0, completedDates: [], bonusesAwarded: 0 };
   var s = choresData.streak;
   if (!s.bonusesAwarded) s.bonusesAwarded = 0;
+  if (!s.completedDates) s.completedDates = [];
 
-  var todayDow = new Date(today).getDay();
-  var myHash = currentChoreUser.hash;
-
-  // Only consider tasks scheduled for today
   var personalDueToday = choresData.list.filter(function (c) { return isDueToday(c, todayDow); });
   var visibleShared = sharedChoresData.list.filter(function (c) {
     return Array.isArray(c.sharedWith) && c.sharedWith.includes(myHash);
@@ -668,18 +672,19 @@ function checkAndUpdateStreak(today) {
   var allDone = personalDueToday.every(function (c) { return c.status === 'done'; }) &&
                 sharedDueToday.every(function (c) { return c.status === 'done'; });
 
+  var hadToday = s.completedDates.includes(today);
+  if (allDone === hadToday) return; // nothing changed, don't save
+
   if (allDone) {
-    if (!s.completedDates.includes(today)) {
-      s.completedDates.push(today);
-      s.completedDates = s.completedDates.slice(-60);
-    }
+    s.completedDates.push(today);
+    s.completedDates = s.completedDates.slice(-60);
   } else {
     s.completedDates = s.completedDates.filter(function (d) { return d !== today; });
   }
 
-  // Recalculate streak count
+  // Recalculate streak count from today backwards
   var count = 0;
-  var d = new Date(today);
+  var d = new Date();
   while (true) {
     var iso = d.toISOString().split('T')[0];
     if (s.completedDates.includes(iso)) { count++; d.setDate(d.getDate() - 1); }
@@ -693,6 +698,8 @@ function checkAndUpdateStreak(today) {
     s.bonusesAwarded = milestones;
     awardStreakBonus();
   }
+
+  await saveChores();
 }
 
 function renderStreak() {
@@ -802,7 +809,6 @@ async function toggleChore(id) {
   }
   if (!chore.history) chore.history = [];
   chore.history.unshift({ doneBy: alias, doneAt: nowISO() });
-  checkAndUpdateStreak(today);
   await saveChores();
 }
 
@@ -814,7 +820,6 @@ async function undoChore(id) {
   chore.doneAt = null;
   chore.nextOccurrence = null;
   if (chore.history && chore.history.length > 0) chore.history.shift();
-  checkAndUpdateStreak(todayISO());
   await saveChores();
 }
 
@@ -839,8 +844,7 @@ async function toggleSharedChore(id) {
   }
   if (!chore.history) chore.history = [];
   chore.history.unshift({ doneBy: alias, doneAt: nowISO() });
-  checkAndUpdateStreak(today);
-  await Promise.all([saveSharedChores(), saveChores()]);
+  await saveSharedChores();
 }
 
 async function undoSharedChore(id) {
@@ -854,8 +858,7 @@ async function undoSharedChore(id) {
   chore.doneAt = null;
   chore.nextOccurrence = null;
   if (chore.history && chore.history.length > 0) chore.history.shift();
-  checkAndUpdateStreak(todayISO());
-  await Promise.all([saveSharedChores(), saveChores()]);
+  await saveSharedChores();
 }
 
 async function deleteSharedChore(id) {
@@ -1228,6 +1231,7 @@ function startChoresSync() {
       firstLoad = false;
       await resetOverdueRecurring();
     }
+    await recalculateStreakIfNeeded();
     renderChores();
   });
 }
@@ -1246,6 +1250,7 @@ function startSharedChoresSync() {
       firstLoad = false;
       await resetOverdueSharedChores();
     }
+    await recalculateStreakIfNeeded();
     renderChores();
   });
 }
