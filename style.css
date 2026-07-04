@@ -806,15 +806,8 @@ header { position: relative; }
 
 .streak-dots {
   display: flex;
-  gap: 0.6rem;
-  align-items: flex-end;
-}
-
-.streak-dot-wrap {
-  display: flex;
-  flex-direction: column;
+  gap: 0.5rem;
   align-items: center;
-  gap: 0.3rem;
 }
 
 .streak-dot {
@@ -827,24 +820,15 @@ header { position: relative; }
   align-items: center;
   justify-content: center;
   font-size: 0.85rem;
-  color: white;
+  color: #a0aec0;
   font-weight: 700;
-  transition: background 0.2s, border-color 0.2s;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
 }
 
 .streak-dot.filled {
   background: #38a169;
   border-color: #38a169;
-}
-
-.streak-dot.admin-dot {
-  cursor: pointer;
-  transition: opacity 0.15s, transform 0.1s;
-}
-
-.streak-dot.admin-dot:hover {
-  opacity: 0.75;
-  transform: scale(1.15);
+  color: white;
 }
 
 .streak-toast {

@@ -715,35 +715,15 @@ function renderStreak() {
   var count = s.count || 0;
   label.textContent = count === 1 ? '1-day streak!' : count + '-day streak' + (count > 1 ? '!' : '');
 
-  // Build last 7 day dots
+  // Build numbered dots 1–7
   dots.innerHTML = '';
-  for (var i = 6; i >= 0; i--) {
-    var d = new Date();
-    d.setDate(d.getDate() - i);
-    var iso = d.toISOString().split('T')[0];
-    var dayName = DAY_NAMES[d.getDay()];
-    var filled = s.completedDates && s.completedDates.includes(iso);
-
-    var wrap = document.createElement('div');
-    wrap.className = 'streak-dot-wrap';
-
+  var count = s.count || 0;
+  for (var i = 1; i <= 7; i++) {
+    var filled = i <= count;
     var dot = document.createElement('div');
-    dot.className = 'streak-dot' + (filled ? ' filled' : '') + (isAdmin ? ' admin-dot' : '');
-    dot.innerHTML = filled ? '✓' : '';
-    dot.title = isAdmin ? (filled ? 'Remove ' + dayName + ' from streak' : 'Add ' + dayName + ' to streak') : '';
-    if (isAdmin) {
-      (function (dayIso) {
-        dot.onclick = function () { adminToggleStreakDay(dayIso); };
-      })(iso);
-    }
-
-    var lbl = document.createElement('span');
-    lbl.className = 'streak-dot-label';
-    lbl.textContent = dayName;
-
-    wrap.appendChild(dot);
-    wrap.appendChild(lbl);
-    dots.appendChild(wrap);
+    dot.className = 'streak-dot' + (filled ? ' filled' : '');
+    dot.textContent = i;
+    dots.appendChild(dot);
   }
 }
 
