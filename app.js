@@ -2,6 +2,11 @@
 // Bibla Apps — app.js
 // =============================================
 
+// ---- Push notification config ----
+// Fill these in after deploying the Cloudflare Worker (see instructions)
+var VAPID_PUBLIC_KEY = 'REPLACE_WITH_YOUR_VAPID_PUBLIC_KEY';
+var PUSH_WORKER_URL  = 'REPLACE_WITH_YOUR_WORKER_URL';
+
 import { initializeApp }              from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getFirestore, doc, getDoc, getDocs, setDoc, onSnapshot, collection }
                                        from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
@@ -847,6 +852,9 @@ async function toggleChore(id) {
   }
   if (!chore.history) chore.history = [];
   chore.history.unshift({ doneBy: alias, doneAt: nowISO() });
+  if (sessionStorage.getItem('canAdd') !== 'true') {
+    sendPushToAdmin(chore.name, alias);
+  }
   await saveChores();
 }
 
@@ -882,6 +890,9 @@ async function toggleSharedChore(id) {
   }
   if (!chore.history) chore.history = [];
   chore.history.unshift({ doneBy: alias, doneAt: nowISO() });
+  if (sessionStorage.getItem('canAdd') !== 'true') {
+    sendPushToAdmin(chore.name, alias);
+  }
   await saveSharedChores();
 }
 
@@ -1406,6 +1417,65 @@ async function saveUserApps() {
   closeManageUsers();
 }
 
+// ---- Push Notifications ----
+
+var adminPushSubscription = null;
+
+function urlBase64ToUint8Array(base64String) {
+  var padding = '='.repeat((4 - base64String.length % 4) % 4);
+  var base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  var rawData = atob(base64);
+  var output = new Uint8Array(rawData.length);
+  for (var i = 0; i < rawData.length; i++) output[i] = rawData.charCodeAt(i);
+  return output;
+}
+
+async function registerServiceWorker() {
+  if (!('serviceWorker' in navigator)) return;
+  try { await navigator.serviceWorker.register('/sw.js'); } catch (e) {}
+}
+
+async function subscribeAdminToPush() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+  if (VAPID_PUBLIC_KEY.startsWith('REPLACE')) return;
+  var permission = await Notification.requestPermission();
+  if (permission !== 'granted') return;
+  try {
+    var reg = await navigator.serviceWorker.ready;
+    var sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+      });
+    }
+    await setDoc(doc(db, 'config', 'adminPush'), { subscription: sub.toJSON() });
+  } catch (e) {}
+}
+
+async function loadAdminPushSubscription() {
+  try {
+    var snap = await getDoc(doc(db, 'config', 'adminPush'));
+    if (snap.exists()) adminPushSubscription = snap.data().subscription;
+  } catch (e) {}
+}
+
+async function sendPushToAdmin(choreName, userAlias) {
+  if (PUSH_WORKER_URL.startsWith('REPLACE')) return;
+  if (!adminPushSubscription) return;
+  try {
+    fetch(PUSH_WORKER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        subscription: adminPushSubscription,
+        title: '✅ ' + userAlias + ' completed a chore',
+        body:  choreName
+      })
+    });
+  } catch (e) {}
+}
+
 // ---- Boot ----
 
 document.addEventListener('DOMContentLoaded', async function () {
@@ -1416,6 +1486,7 @@ document.addEventListener('DOMContentLoaded', async function () {
   }
 
   loadVersion();
+  registerServiceWorker();
 
   // Home page guard + background prefetch
   if (document.querySelector('.home-main')) {
@@ -1508,6 +1579,9 @@ document.addEventListener('DOMContentLoaded', async function () {
       if (pickerWrap && allUsers.length > 1) pickerWrap.style.display = 'flex';
       renderUserPicker(allUsers);
       window._choreUsers = allUsers;
+      subscribeAdminToPush();
+    } else {
+      loadAdminPushSubscription();
     }
     startChoresSync();
     startSharedChoresSync();
