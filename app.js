@@ -562,45 +562,83 @@ function renderChores() {
     return;
   }
 
-  var grouped = {};
-  sharedCategories.forEach(function (cat) { grouped[cat] = []; });
-  choresData.list.forEach(function (c) {
-    if (!grouped[c.category]) grouped[c.category] = [];
-    grouped[c.category].push(c);
-  });
+  var todayDow = new Date().getDay();
+  var dueToday = choresData.list.filter(function (c) { return isDueToday(c, todayDow); });
+  var dueTodayIds = {};
+  dueToday.forEach(function (c) { dueTodayIds[c.id] = true; });
 
-  Object.keys(grouped).forEach(function (cat) {
-    var chores = grouped[cat];
-    if (chores.length === 0) return;
+  // "Due Today" section
+  if (dueToday.length > 0) {
+    var todaySection = document.createElement('div');
+    todaySection.className = 'chore-category-section due-today-section';
 
-    var section = document.createElement('div');
-    section.className = 'chore-category-section';
+    var todayHeading = document.createElement('p');
+    todayHeading.className = 'chore-category-heading';
+    todayHeading.textContent = '📅 ' + DAY_NAMES[todayDow];
+    todaySection.appendChild(todayHeading);
 
-    var heading = document.createElement('p');
-    heading.className = 'chore-category-heading';
-    heading.textContent = cat;
-    section.appendChild(heading);
+    var todayUl = document.createElement('ul');
+    todayUl.className = 'chore-list';
 
-    var ul = document.createElement('ul');
-    ul.className = 'chore-list';
-
-    chores.forEach(function (chore) {
+    dueToday.forEach(function (chore) {
       var isDone = chore.status === 'done';
       var li = buildChoreListItem(
-        chore,
-        isDone,
+        chore, isDone,
         function () { toggleChore(chore.id); },
         function () { undoChore(chore.id); },
         function () { openChoreForm(chore.id, false); },
         function () { deleteChore(chore.id); },
         isAdmin
       );
-      ul.appendChild(li);
+      todayUl.appendChild(li);
     });
 
-    section.appendChild(ul);
-    container.appendChild(section);
-  });
+    todaySection.appendChild(todayUl);
+    container.appendChild(todaySection);
+  }
+
+  // Remaining tasks not due today, grouped by category
+  var otherChores = choresData.list.filter(function (c) { return !dueTodayIds[c.id]; });
+  if (otherChores.length > 0) {
+    var grouped = {};
+    sharedCategories.forEach(function (cat) { grouped[cat] = []; });
+    otherChores.forEach(function (c) {
+      if (!grouped[c.category]) grouped[c.category] = [];
+      grouped[c.category].push(c);
+    });
+
+    Object.keys(grouped).forEach(function (cat) {
+      var chores = grouped[cat];
+      if (chores.length === 0) return;
+
+      var section = document.createElement('div');
+      section.className = 'chore-category-section';
+
+      var heading = document.createElement('p');
+      heading.className = 'chore-category-heading';
+      heading.textContent = cat;
+      section.appendChild(heading);
+
+      var ul = document.createElement('ul');
+      ul.className = 'chore-list';
+
+      chores.forEach(function (chore) {
+        var isDone = chore.status === 'done';
+        var li = buildChoreListItem(
+          chore, isDone,
+          function () { toggleChore(chore.id); },
+          function () { undoChore(chore.id); },
+          function () { openChoreForm(chore.id, false); },
+          function () { deleteChore(chore.id); },
+          isAdmin
+        );
+        ul.appendChild(li);
+      });
+
+      section.appendChild(ul);
+      container.appendChild(section);
+    });
+  }
 }
 
 async function awardStreakBonus() {

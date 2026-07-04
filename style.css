@@ -936,6 +936,11 @@ header { position: relative; }
   background: #ebf8ff;
 }
 
+.due-today-section {
+  border: 2px solid #c6f6d5;
+  background: #f0fff4;
+}
+
 .shared-users-picker {
   display: flex;
   flex-wrap: wrap;
