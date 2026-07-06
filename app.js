@@ -689,13 +689,13 @@ function isDueToday(chore, todayDow) {
   return true; // non-recurring chores are always due until done
 }
 
-var skipNextStreakRecalc = false;
+var skipStreakRecalcUntil = 0; // timestamp — skip recalc while Date.now() < this value
 
 // Called from onSnapshot handlers after choresData is refreshed from Firestore.
 // Only saves if the streak value actually changed, preventing infinite loops.
 async function recalculateStreakIfNeeded() {
   if (!currentChoreUser) return;
-  if (skipNextStreakRecalc) { skipNextStreakRecalc = false; return; }
+  if (Date.now() < skipStreakRecalcUntil) return;
 
   var today = todayISO();
   var todayDow = new Date().getDay(); // local day of week — avoids UTC parsing issues
@@ -815,7 +815,7 @@ function renderStreak() {
 }
 
 async function adminAdjustStreak(delta) {
-  skipNextStreakRecalc = true;
+  skipStreakRecalcUntil = Date.now() + 5000; // suppress recalc for 5 seconds
   if (!choresData.streak) choresData.streak = { count: 0, completedDates: [], bonusesAwarded: 0 };
   var s = choresData.streak;
   s.count = Math.max(0, (s.count || 0) + delta);
