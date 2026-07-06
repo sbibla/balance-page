@@ -413,7 +413,14 @@ function addDays(dateStr, days) {
 }
 
 function todayISO() {
-  return new Date().toISOString().split('T')[0];
+  return todayISOForDate(new Date());
+}
+
+function todayISOForDate(d) {
+  var y = d.getFullYear();
+  var m = String(d.getMonth() + 1).padStart(2, '0');
+  var day = String(d.getDate()).padStart(2, '0');
+  return y + '-' + m + '-' + day;
 }
 
 function buildChoreListItem(chore, isDone, onToggle, onUndo, onEdit, onDelete, isAdmin) {
@@ -697,11 +704,14 @@ async function recalculateStreakIfNeeded() {
   if (!currentChoreUser) return;
   if (Date.now() < skipStreakRecalcUntil) return;
 
+  // Guard: don't run if personal chores haven't loaded from Firestore yet.
+  // A missing streak field means we have the uninitialized default, not real data.
+  if (!choresData.streak) return;
+
   var today = todayISO();
-  var todayDow = new Date().getDay(); // local day of week — avoids UTC parsing issues
+  var todayDow = new Date().getDay(); // local day of week
   var myHash = currentChoreUser.hash;
 
-  if (!choresData.streak) choresData.streak = { count: 0, completedDates: [], bonusesAwarded: 0 };
   var s = choresData.streak;
   if (!s.bonusesAwarded) s.bonusesAwarded = 0;
   if (!s.completedDates) s.completedDates = [];
@@ -718,25 +728,25 @@ async function recalculateStreakIfNeeded() {
   var allDone = personalDueToday.every(function (c) { return c.status === 'done'; }) &&
                 sharedDueToday.every(function (c) { return c.status === 'done'; });
 
-  // Only add today — never remove it mid-day. Streak resets on the next day naturally.
+  // Only add today — never remove it mid-day.
   var hadToday = s.completedDates.includes(today);
-  if (!allDone && hadToday) return;  // already marked today, keep it even if tasks undone
-  if (!allDone && !hadToday) return; // nothing to do, no save needed
+  if (!allDone) return;  // tasks not all done — never touch completedDates
+  if (hadToday) return;  // today already earned — nothing to do
 
-  // allDone && !hadToday: add today
+  // allDone && !hadToday: add today and recalculate count
   s.completedDates.push(today);
   s.completedDates = s.completedDates.slice(-60);
 
-  // Count consecutive complete days from yesterday backwards, then add today
+  // Count consecutive complete days from yesterday backwards (local dates), then add today
   var count = 0;
   var d = new Date();
-  d.setDate(d.getDate() - 1); // start from yesterday
+  d.setDate(d.getDate() - 1);
   while (true) {
-    var iso = d.toISOString().split('T')[0];
+    var iso = todayISOForDate(d);
     if (s.completedDates.includes(iso)) { count++; d.setDate(d.getDate() - 1); }
     else break;
   }
-  count += 1; // today is complete (we just added it)
+  count += 1; // today is complete
   s.count = count;
 
   // Award $2 bonus for every new 7-day milestone
@@ -776,7 +786,7 @@ function renderStreak() {
     var dd = new Date();
     dd.setDate(dd.getDate() - 1);
     while (true) {
-      var isoD = dd.toISOString().split('T')[0];
+      var isoD = todayISOForDate(dd);
       if (s.completedDates && s.completedDates.includes(isoD)) { cnt++; dd.setDate(dd.getDate() - 1); }
       else break;
     }
@@ -821,12 +831,11 @@ async function adminAdjustStreak(delta) {
   s.count = Math.max(0, (s.count || 0) + delta);
 
   // Sync completedDates to match the new count (keep most recent N days)
-  var today = todayISO();
   var dates = [];
   for (var i = 0; i < s.count; i++) {
-    var d = new Date(today);
+    var d = new Date();
     d.setDate(d.getDate() - i);
-    dates.push(d.toISOString().split('T')[0]);
+    dates.push(todayISOForDate(d));
   }
   s.completedDates = dates;
 
@@ -849,7 +858,7 @@ async function adminToggleStreakDay(iso) {
   var count = 0;
   var d = new Date(today);
   while (true) {
-    var dayIso = d.toISOString().split('T')[0];
+    var dayIso = todayISOForDate(d);
     if (s.completedDates.includes(dayIso)) { count++; d.setDate(d.getDate() - 1); }
     else break;
   }
