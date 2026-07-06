@@ -718,24 +718,25 @@ async function recalculateStreakIfNeeded() {
   var allDone = personalDueToday.every(function (c) { return c.status === 'done'; }) &&
                 sharedDueToday.every(function (c) { return c.status === 'done'; });
 
+  // Only add today — never remove it mid-day. Streak resets on the next day naturally.
   var hadToday = s.completedDates.includes(today);
-  if (allDone === hadToday) return; // nothing changed, don't save
+  if (!allDone && hadToday) return;  // already marked today, keep it even if tasks undone
+  if (!allDone && !hadToday) return; // nothing to do, no save needed
 
-  if (allDone) {
-    s.completedDates.push(today);
-    s.completedDates = s.completedDates.slice(-60);
-  } else {
-    s.completedDates = s.completedDates.filter(function (d) { return d !== today; });
-  }
+  // allDone && !hadToday: add today
+  s.completedDates.push(today);
+  s.completedDates = s.completedDates.slice(-60);
 
-  // Recalculate streak count from today backwards
+  // Count consecutive complete days from yesterday backwards, then add today
   var count = 0;
   var d = new Date();
+  d.setDate(d.getDate() - 1); // start from yesterday
   while (true) {
     var iso = d.toISOString().split('T')[0];
     if (s.completedDates.includes(iso)) { count++; d.setDate(d.getDate() - 1); }
     else break;
   }
+  count += 1; // today is complete (we just added it)
   s.count = count;
 
   // Award $2 bonus for every new 7-day milestone
@@ -765,7 +766,22 @@ function renderStreak() {
   var s = (choresData.streak) || { count: 0, completedDates: [] };
   banner.style.display = 'flex';
 
+  // Show the live count. If today isn't complete yet, calculate from yesterday
+  // so the streak doesn't show as 0 mid-day.
+  var today = todayISO();
   var count = s.count || 0;
+  if (!s.completedDates || !s.completedDates.includes(today)) {
+    // today not yet earned — recalc from yesterday so display reflects prior streak
+    var cnt = 0;
+    var dd = new Date();
+    dd.setDate(dd.getDate() - 1);
+    while (true) {
+      var isoD = dd.toISOString().split('T')[0];
+      if (s.completedDates && s.completedDates.includes(isoD)) { cnt++; dd.setDate(dd.getDate() - 1); }
+      else break;
+    }
+    count = cnt;
+  }
   label.textContent = count === 1 ? '1-day streak!' : count + '-day streak' + (count > 1 ? '!' : '');
 
   // Admin +/- controls
