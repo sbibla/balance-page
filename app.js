@@ -4,8 +4,8 @@
 
 // ---- Push notification config ----
 // Fill these in after deploying the Cloudflare Worker (see instructions)
-var VAPID_PUBLIC_KEY = 'REPLACE_WITH_YOUR_VAPID_PUBLIC_KEY';
-var PUSH_WORKER_URL  = 'REPLACE_WITH_YOUR_WORKER_URL';
+var VAPID_PUBLIC_KEY = 'BB8l49Vot8r-0OV-D4qwxv4spw3rINM0ZUCq_hraz8S0oFDI2FJK5cGpDrt89kgmVg7mevAy1nnjjmRR6btXL44';
+var PUSH_WORKER_URL  = 'https://bibla-push.saar-bibla.workers.dev';
 
 import { initializeApp }              from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getFirestore, doc, getDoc, getDocs, setDoc, onSnapshot, collection }
