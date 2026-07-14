@@ -1,3 +1,6 @@
+# readable source — contains plain-text credentials, do not commit
+app.src.js
+
 # wrangler files
 .wrangler
 .dev.vars*
